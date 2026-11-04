@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # 웹 푸시 (브라우저 알림). 비어 있으면 푸시가 꺼진다. 키 만들기: python -m app.scripts.gen_vapid
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:contact@example.com"  # 푸시 서비스가 문제 있을 때 연락할 주소
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

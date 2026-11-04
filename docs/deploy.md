@@ -39,6 +39,9 @@ vi .env
 | `COOKIE_SECURE` | `true` (HTTPS 에서만 로그인 쿠키 전송) |
 | `CORS_ORIGINS` | 비워 둬도 됨 (같은 도메인) |
 | `CRAWL_USER_AGENT` | `FairPickBot/1.0 (+실제 연락 이메일)` |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | 웹 푸시용 (선택). `docker compose -f docker-compose.prod.yml run --rm api python -m app.scripts.gen_vapid` 출력. 한 번 만들면 바꾸지 않는다 |
+| `VAPID_SUBJECT` | `mailto:실제 연락 이메일` |
+| `KAKAO_*`, `GOOGLE_*` | 소셜 로그인 (선택). [social-login.md](social-login.md) |
 
 `DATABASE_URL` 은 compose 가 컨테이너용(`@db:3306`)으로 덮어쓰므로 그대로 둬도 된다.
 

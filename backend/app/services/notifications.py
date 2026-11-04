@@ -4,8 +4,12 @@
 매일 오전 9시(KST)에
   1) 선별: 조건에 맞는 (사용자, 박람회) 조합을 INSERT IGNORE 로 pending 행으로 만든다. 이미 있는 조합은 무시된다.
      사용자가 해당 종류의 알림을 꺼 두었으면 선별 단계에서 뺀다.
-  2) 발송: pending 행을 50건씩 메일로 보내고 sent 로 바꾼다. 실패하면 attempts 를 올리고, 3회를 넘기면 failed.
+  2) 발송: pending 행을 50건씩 보내고 sent 로 바꾼다. 실패하면 attempts 를 올리고, 3회를 넘기면 failed.
 UNIQUE(user_id, fair_id, type, ref_key, channel) 가 같은 알림의 중복 발송을 막는다.
+
+채널은 둘이다. 알림 종류(마감·개막·변경) 설정은 두 채널이 함께 쓴다.
+- email: 이메일이 있고 '알림 메일 받기'를 켠 회원
+- push: 브라우저 알림을 구독한 기기가 하나라도 있는 회원 (기기마다 켜고 끈다, services/push.py)
 사전등록 마감이 연장되면 ref_key(마감 일시)가 바뀌므로 바뀐 마감에 대한 알림이 한 번 더 나간다.
 """
 
@@ -13,12 +17,12 @@ import logging
 import secrets
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import CHAR, Select, cast, func, insert, literal, select
+from sqlalchemy import CHAR, Select, cast, exists, func, insert, literal, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.timeutil import app_tz, to_local, to_utc_naive
-from app.models import Bookmark, Fair, FairChangeLog, Notification, NotificationSetting
-from app.services import mail
+from app.models import Bookmark, Fair, FairChangeLog, Notification, NotificationSetting, PushSubscription, User
+from app.services import mail, push
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +47,22 @@ def _kst_day_utc(day: date) -> tuple[datetime, datetime]:
     return start, start + timedelta(days=1) - timedelta(microseconds=1)
 
 
-def _base(setting_flag) -> Select:
-    """북마크 × 공개 박람회 × 알림을 켠 사용자"""
-    return (
+CHANNELS = ("email", "push")
+
+
+def _base(setting_flag, channel: str) -> Select:
+    """북마크 × 공개 박람회 × 이 종류의 알림을 켜고 이 채널로 받을 수 있는 사용자"""
+    stmt = (
         select(Bookmark.user_id, Fair.id)
         .join(Fair, Fair.id == Bookmark.fair_id)
         .join(NotificationSetting, NotificationSetting.user_id == Bookmark.user_id)
-        .where(Fair.status == "published", NotificationSetting.email_enabled.is_(True), setting_flag.is_(True))
+        .where(Fair.status == "published", setting_flag.is_(True))
     )
+    if channel == "email":
+        return stmt.join(User, User.id == Bookmark.user_id).where(
+            NotificationSetting.email_enabled.is_(True), User.email.is_not(None)
+        )
+    return stmt.where(exists().where(PushSubscription.user_id == Bookmark.user_id))
 
 
 def _insert_ignore(db: Session, stmt: Select, columns: list[str]) -> int:
@@ -59,19 +71,31 @@ def _insert_ignore(db: Session, stmt: Select, columns: list[str]) -> int:
 
 
 def select_targets(db: Session, *, today: date, now: datetime) -> dict[str, int]:
+    """종류별로 새로 만든 알림 수 (두 채널 합). 같은 날 다시 실행하면 0."""
+    counts = dict.fromkeys(("prereg_deadline", "opening_soon", "fair_updated"), 0)
+    for channel in CHANNELS:
+        if channel == "push" and not push.is_configured():
+            continue
+        for name, n in _select_channel(db, today=today, now=now, channel=channel).items():
+            counts[name] += n
+    db.commit()
+    return counts
+
+
+def _select_channel(db: Session, *, today: date, now: datetime, channel: str) -> dict[str, int]:
     cols = ["user_id", "fair_id", "type", "ref_key", "channel", "status", "attempts", "scheduled_at"]
-    tail = lambda t, ref: (literal(t), ref, literal("email"), literal("pending"), literal(0), literal(now))  # noqa: E731
+    tail = lambda t, ref: (literal(t), ref, literal(channel), literal("pending"), literal(0), literal(now))  # noqa: E731
 
     # 사전등록 마감: 마감 전날 (= 마감이 내일 하루 안에 있는 박람회)
     tomorrow_start, tomorrow_end = _kst_day_utc(today + timedelta(days=1))
     prereg = (
-        _base(NotificationSetting.prereg_deadline)
+        _base(NotificationSetting.prereg_deadline, channel)
         .add_columns(*tail("prereg_deadline", func.date_format(Fair.prereg_end_at, "%Y-%m-%dT%H:%i")))
         .where(Fair.prereg_end_at.between(tomorrow_start, tomorrow_end))
     )
     # 개막 임박: 개막 3일 전
     opening = (
-        _base(NotificationSetting.opening_soon)
+        _base(NotificationSetting.opening_soon, channel)
         .add_columns(*tail("opening_soon", func.date_format(Fair.start_date, "%Y-%m-%d")))
         .where(Fair.start_date == today + timedelta(days=3))
     )
@@ -84,7 +108,7 @@ def select_targets(db: Session, *, today: date, now: datetime) -> dict[str, int]
         .subquery()
     )
     updated = (
-        _base(NotificationSetting.fair_updated)
+        _base(NotificationSetting.fair_updated, channel)
         .join(last_change, last_change.c.fair_id == Fair.id)
         .add_columns(*tail("fair_updated", cast(last_change.c.log_id, CHAR(50))))
         .where(Fair.end_date >= today)
@@ -93,7 +117,6 @@ def select_targets(db: Session, *, today: date, now: datetime) -> dict[str, int]
     counts = {}
     for name, stmt in (("prereg_deadline", prereg), ("opening_soon", opening), ("fair_updated", updated)):
         counts[name] = _insert_ignore(db, stmt, cols)
-    db.commit()
     return counts
 
 
@@ -135,12 +158,40 @@ def build_mail(n: Notification, setting: NotificationSetting, base_url: str) -> 
     )
 
 
+def build_push(n: Notification) -> dict:
+    """서비스 워커(frontend/public/sw.js)가 받아 알림으로 띄우는 내용. 같은 tag 는 알림 하나로 합쳐진다."""
+    f = n.fair
+    return {
+        "title": f"{_HEADLINES[n.type]}",
+        "body": f"{f.title} · {_period(f)} · {f.venue.name}",
+        "url": f"/fairs/{f.id}",
+        "tag": f"{n.type}-{f.id}",
+    }
+
+
+def _deliver(db: Session, n: Notification, setting: NotificationSetting, base_url: str, now: datetime) -> str:
+    """'sent' | 'skipped' | 'retry'. 예외는 밖에서 retry 로 처리한다."""
+    if n.channel == "email":
+        if not n.user.email:  # 이메일 없이 소셜 로그인으로 가입한 회원
+            return "skipped"
+        mail.send(build_mail(n, setting, base_url))
+        return "sent"
+    if not push.is_configured():
+        return "skipped"
+    result = push.send_to_user(db, n.user_id, build_push(n), now=now)
+    if result.delivered:
+        return "sent"
+    if result.failed:
+        return "retry"  # 일시 오류인 기기가 있다
+    return "skipped"  # 구독이 모두 끝났다
+
+
 def send_pending(db: Session, *, now: datetime, base_url: str) -> dict[str, int]:
     counts = {"sent": 0, "failed": 0, "skipped": 0, "retry": 0}
     while True:
         batch = db.scalars(
             select(Notification)
-            .where(Notification.status == "pending", Notification.scheduled_at <= now, Notification.channel == "email")
+            .where(Notification.status == "pending", Notification.scheduled_at <= now)
             .options(selectinload(Notification.user), selectinload(Notification.fair).selectinload(Fair.venue))
             .order_by(Notification.id)
             .limit(BATCH)
@@ -150,17 +201,22 @@ def send_pending(db: Session, *, now: datetime, base_url: str) -> dict[str, int]
         progressed = False
         for n in batch:
             setting = db.get(NotificationSetting, n.user_id)
-            enabled = setting is not None and setting.email_enabled and getattr(setting, n.type)
-            if not enabled or n.fair.status != "published" or not n.user.email:
-                # 발송 전에 알림을 껐거나, 박람회가 숨겨졌거나, 이메일 없이 소셜 로그인으로 가입한 회원
-                n.status = "skipped"
+            enabled = setting is not None and getattr(setting, n.type)
+            if n.channel == "email":
+                enabled = enabled and setting.email_enabled
+            if not enabled or n.fair.status != "published":
+                n.status = "skipped"  # 발송 전에 알림을 껐거나 박람회가 숨겨졌다
                 counts["skipped"] += 1
                 progressed = True
                 continue
             try:
-                mail.send(build_mail(n, setting, base_url))
-                n.status, n.sent_at = "sent", now
-                counts["sent"] += 1
+                outcome = _deliver(db, n, setting, base_url, now)
+                if outcome == "retry":
+                    raise RuntimeError("push: 모든 기기에 일시 오류")
+                n.status = outcome
+                if outcome == "sent":
+                    n.sent_at = now
+                counts[outcome] += 1
                 progressed = True
             except Exception:
                 n.attempts += 1

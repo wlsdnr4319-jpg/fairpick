@@ -121,6 +121,25 @@ class Notification(Base):
     fair = relationship("Fair")
 
 
+class PushSubscription(Base):
+    """
+    브라우저 푸시 구독. 기기(브라우저)마다 하나. endpoint 는 푸시 서비스(FCM, Mozilla 등)가 준 주소다.
+    endpoint 가 길어(수백 자) UNIQUE 인덱스를 걸기 어려우므로 SHA-256 해시에 UNIQUE 를 건다.
+    """
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    endpoint: Mapped[str] = mapped_column(Text)
+    endpoint_hash: Mapped[str] = mapped_column(CHAR(64), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))  # 브라우저 공개 키 (메시지 암호화용)
+    auth: Mapped[str] = mapped_column(String(100))  # 브라우저 인증 비밀값
+    user_agent: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 class FairChangeLog(Base):
     """박람회 변경 이력. 북마크한 사람에게 '정보 변경' 알림을 보낼 때 쓴다."""
 
