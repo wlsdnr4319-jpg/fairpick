@@ -33,6 +33,13 @@ class PoliteClient:
         )
 
     def get(self, url: str, params: dict | None = None) -> str:
+        return self._request("GET", url, params=params)
+
+    def post(self, url: str, data: dict | None = None) -> str:
+        """폼 전송(application/x-www-form-urlencoded). 달력의 다른 달을 AJAX 로만 주는 사이트에 쓴다."""
+        return self._request("POST", url, data=data)
+
+    def _request(self, method: str, url: str, *, params: dict | None = None, data: dict | None = None) -> str:
         last_error: Exception | None = None
         for attempt in range(1, self.retries + 1):
             wait = self.delay - (time.monotonic() - self._last_request)
@@ -40,7 +47,7 @@ class PoliteClient:
                 self.sleep(wait)
             try:
                 self._last_request = time.monotonic()
-                res = self._client.get(url, params=params)
+                res = self._client.request(method, url, params=params, data=data)
                 if res.status_code >= 500 or res.status_code == 429:
                     raise FetchError(f"HTTP {res.status_code}")
                 res.raise_for_status()

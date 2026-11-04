@@ -478,4 +478,34 @@ CRAWL_SOURCES = [
         "list_url": "https://www.kintex.com/web/ko/event/list.do",
         "policy_note": "robots.txt: 일반 크롤러는 /admin/, /login/ 만 금지. 행사 목록 허용. 하루 1회, 요청 간 2초 이상",
     },
+    {
+        "parser_key": "setec",
+        "venue": "SETEC",
+        "list_url": "https://www.setec.or.kr/front/schedule/list.do",
+        "policy_note": "robots.txt: Googlebot 의 /search/search.do, /bbs/ 만 금지. 일반 크롤러 제한 없음. 하루 1회, 요청 간 2초 이상",
+    },
+    {
+        "parser_key": "suwonmesse",
+        "venue": "수원메쎄",
+        "list_url": "https://suwonmesse.com/event_schedule/event_calendar/",
+        "policy_note": "robots.txt: 모든 경로 허용. 달력 4개월(지난달~다다음 달) 요청. 하루 1회, 요청 간 2초 이상",
+    },
+    {
+        "parser_key": "exco",
+        "venue": "엑스코",
+        "list_url": "https://www.exco.co.kr/schedule/schedule_list.html",
+        "policy_note": "robots.txt: /Develop/, /deditor/, /data/ 와 일부 게시판만 금지. 연간 일정표 허용. 주최자 전화번호는 저장하지 않음",
+    },
+    {
+        "parser_key": "coexmagok",
+        "venue": "코엑스 마곡",
+        "list_url": "https://coexmagok.co.kr/event-schedule/",
+        "policy_note": "robots.txt: /wp-admin/ 금지, /wp-admin/admin-ajax.php 는 명시적 허용. 달력 1회 + 다른 달 AJAX 3회. 요청 간 2초 이상",
+    },
 ]
+
+# 수집하지 않는 전시장과 이유 (2026-11-04 확인). 일정은 관리자가 직접 등록한다
+CRAWL_EXCLUDED = {
+    "aT센터": "www.atcenter.co.kr 은 Cloudflare 가 봇 요청을 403 으로 막고, www.at.or.kr 의 행사일정(/ac/)은 robots.txt 가 금지",
+    "벡스코": "robots.txt 가 메인 페이지(/) 외 전체를 금지 (User-Agent: * / Disallow: /)",
+}
