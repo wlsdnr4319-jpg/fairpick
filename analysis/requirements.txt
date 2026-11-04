@@ -1,0 +1,10 @@
+# 분석 노트북 전용 (레퍼런스 12장). 백엔드 의존성과 섞지 않는다
+pandas
+jinja2   # DataFrame.style (표 서식)
+matplotlib
+SQLAlchemy
+PyMySQL
+cryptography
+nbformat
+nbclient
+ipykernel

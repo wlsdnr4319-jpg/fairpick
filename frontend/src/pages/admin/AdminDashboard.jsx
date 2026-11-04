@@ -51,7 +51,21 @@ export default function AdminDashboard() {
         <Link to="/admin/crawl-runs" className="inline-flex min-h-11 items-center rounded-lg border px-4">
           수집 이력
         </Link>
+        <button type="button" onClick={downloadExcel} className="inline-flex min-h-11 items-center rounded-lg border px-4">
+          엑셀 내보내기
+        </button>
       </div>
     </div>
   )
+}
+
+// 관리자 엑셀 내보내기 (F-23). 로그인 토큰이 필요해 링크 대신 API 로 받아 저장한다
+async function downloadExcel() {
+  const res = await api.get('/admin/export/fairs.xlsx', { responseType: 'blob' })
+  const url = URL.createObjectURL(res.data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `fairpick-fairs-${new Date().toISOString().slice(0, 10)}.xlsx`
+  a.click()
+  URL.revokeObjectURL(url)
 }

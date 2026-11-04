@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { errorCode, errorMessage } from '../api/client'
 import { StatusBadge, TagChip } from '../components/Badges'
@@ -42,7 +43,16 @@ export default function FairDetail() {
       <section aria-label="핵심 정보" className="grid gap-3 rounded-xl border p-4 sm:grid-cols-2">
         <Info label="기간" value={formatPeriod(fair.start_date, fair.end_date)} />
         <Info label="운영 시간" value={hours} note={fair.hours.note} />
-        <Info label="장소" value={`${fair.venue.name}${fair.venue.hall ? ` ${fair.venue.hall}` : ''} · ${fair.venue.region}`} />
+        <Info
+          label="장소"
+          value={`${fair.venue.name}${fair.venue.hall ? ` ${fair.venue.hall}` : ''} · ${fair.venue.region}`}
+          note={
+            // 지도·길찾기 (F-20): 좌표 대신 전시장 이름으로 지도 검색을 연다
+            <a href={`https://map.kakao.com/link/search/${encodeURIComponent(fair.venue.name)}`} target="_blank" rel="noopener noreferrer" className="text-indigo-700 underline">
+              지도·길찾기
+            </a>
+          }
+        />
         <Info label="일반인 관람" value={PUBLIC_ACCESS_LABEL[fair.public_access]} note={fair.access_note} />
         <Info label="현장 입장료" value={formatPrice(fair.price.onsite)} />
         <Info label="사전등록 입장료" value={formatPrice(fair.price.prereg)} />
@@ -81,6 +91,15 @@ export default function FairDetail() {
       {/* 모바일 하단 고정 바: 북마크, 공식 사이트 */}
       <div className="fixed inset-x-0 bottom-0 flex items-center gap-2 border-t bg-white px-4 py-2 md:static md:border-0 md:p-0">
         <BookmarkButton fairId={fair.id} bookmarked={fair.is_bookmarked} className="border shadow-none" />
+        <ShareButton title={fair.title} />
+        <a
+          href={`/api/v1/fairs/${fair.id}/calendar.ics`}
+          download
+          aria-label="내 캘린더에 추가"
+          className="inline-flex h-11 items-center justify-center rounded-full border px-3 text-sm"
+        >
+          캘린더
+        </a>
         {fair.official_url && (
           <a
             href={fair.official_url}
@@ -133,5 +152,29 @@ function PreregBox({ prereg, price }) {
         </a>
       )}
     </section>
+  )
+}
+
+// 공유하기 (F-26): 모바일은 기기 공유 창, 데스크톱은 링크 복사
+function ShareButton({ title }) {
+  const [copied, setCopied] = useState(false)
+  const share = async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url })
+      } catch {
+        /* 사용자가 공유를 취소함 */
+      }
+      return
+    }
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <button type="button" onClick={share} className="inline-flex h-11 items-center justify-center rounded-full border px-3 text-sm" aria-live="polite">
+      {copied ? '링크 복사됨' : '공유'}
+    </button>
   )
 }
