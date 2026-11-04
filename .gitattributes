@@ -1,0 +1,5 @@
+# 저장소에는 LF 로 저장한다. Docker(Linux) 컨테이너에서 쓰는 스크립트가 CRLF 로 깨지지 않게 한다.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.svg text

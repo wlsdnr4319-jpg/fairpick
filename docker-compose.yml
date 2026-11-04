@@ -1,0 +1,29 @@
+# 로컬 개발용: 지금은 MySQL(db)만 띄운다.
+#   docker compose up -d db
+# api, worker, nginx 서비스는 8주차(배포)에 추가한다. (설계 레퍼런스 14장)
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: fairpick
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: UTC
+    # 한글·이모지 저장 (레퍼런스 6장 설계 원칙)
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      # 개발 중 호스트의 uvicorn 에서 접속하려고 연다. 운영에서는 닫는다.
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 10
+
+volumes:
+  db_data:

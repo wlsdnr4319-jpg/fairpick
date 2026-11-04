@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+
+# 환경 변수 (비밀값) — 저장소에는 .env.example만 올린다
+.env
+
+# 에디터·OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
