@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { errorMessage } from '../api/client'
+import SocialButtons, { oauthErrorMessage } from '../components/SocialButtons'
 import { useAuth } from '../store/AuthContext'
 import { safeNext } from '../utils/nav'
 
@@ -9,7 +10,7 @@ export default function Login() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
+  const [error, setError] = useState(() => oauthErrorMessage(params.get('oauth_error')))
   const [busy, setBusy] = useState(false)
 
   const submit = async (e) => {
@@ -36,6 +37,7 @@ export default function Login() {
           {busy ? '로그인 중…' : '로그인'}
         </button>
       </form>
+      <SocialButtons next={safeNext(params.get('next'))} />
       <p className="text-center text-sm text-gray-600">
         <Link to="/reset-password" className="text-gray-500 underline">비밀번호를 잊으셨나요?</Link>
       </p>

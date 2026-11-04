@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { errorMessage } from '../api/client'
 import * as eng from '../api/engagement'
+import { useAuth } from '../store/AuthContext'
 import { AuthCard, Field } from './Login'
 
 // 내 관람 노트 (/mypage/visits)
@@ -36,6 +37,7 @@ const KINDS = [
 
 // 알림 설정 (F-12). Settings 페이지 안에 들어간다
 export function NotificationSettings() {
+  const { user } = useAuth()
   const qc = useQueryClient()
   const { data } = useQuery({ queryKey: ['notification-settings'], queryFn: eng.fetchNotificationSettings })
   const save = useMutation({
@@ -43,6 +45,14 @@ export function NotificationSettings() {
     onSuccess: (d) => qc.setQueryData(['notification-settings'], d),
   })
   if (!data) return null
+  if (!user?.email) {
+    return (
+      <section className="space-y-2 rounded-xl border p-4">
+        <h2 className="font-semibold">알림 메일</h2>
+        <p className="text-sm text-gray-500">이메일 없이 소셜 계정으로 가입해서 알림 메일을 받을 수 없어요.</p>
+      </section>
+    )
+  }
   const toggle = (k) => save.mutate({ ...data, [k]: !data[k] })
   return (
     <section className="space-y-2 rounded-xl border p-4">
