@@ -7,7 +7,7 @@
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -23,12 +23,12 @@ from app.core.security import (
 from app.models import RefreshToken, User
 
 
-def _normalize_email(email: str) -> str:
+def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
 def signup(db: Session, *, email: str, password: str, nickname: str) -> User:
-    email = _normalize_email(email)
+    email = normalize_email(email)
     if db.scalar(select(User.id).where(User.email == email)):
         raise AppError(409, "EMAIL_TAKEN", "이미 가입된 이메일이에요")
     user = User(email=email, password_hash=hash_password(password), nickname=nickname, role="user")
@@ -42,7 +42,7 @@ def signup(db: Session, *, email: str, password: str, nickname: str) -> User:
 
 
 def authenticate(db: Session, *, email: str, password: str) -> User:
-    user = db.scalar(select(User).where(User.email == _normalize_email(email)))
+    user = db.scalar(select(User).where(User.email == normalize_email(email)))
     if user is None:
         verify_password(password, DUMMY_PASSWORD_HASH)  # 응답 시간을 맞춘다
         raise AppError(401, "INVALID_CREDENTIALS", "이메일이나 비밀번호가 맞지 않아요")
@@ -109,15 +109,27 @@ def revoke_all(db: Session, user_id: int, now: datetime) -> None:
 # ---------------------------------------------------------------------------
 
 RESET_TTL = timedelta(minutes=30)
+# 한 계정에 1시간 안에 보내는 재설정 메일 수. 남의 이메일로 메일 폭탄을 보내는 데 쓰이지 않게 한다
+RESET_MAX_PER_HOUR = 3
 
 
 def request_password_reset(db: Session, email: str, now: datetime) -> tuple[User, str] | None:
-    """가입된 이메일이면 (사용자, 토큰), 아니면 None. 호출한 쪽은 두 경우 모두 같은 응답을 준다."""
+    """
+    가입된 이메일이면 (사용자, 토큰), 아니면(또는 1시간 발송 한도를 넘으면) None.
+    호출한 쪽은 모두 같은 응답을 준다.
+    """
     from app.models import PasswordResetToken
 
-    user = db.scalar(select(User).where(User.email == _normalize_email(email)))
+    user = db.scalar(select(User).where(User.email == normalize_email(email)))
     if user is None:
         return None
+    recent = db.scalar(
+        select(func.count())
+        .select_from(PasswordResetToken)
+        .where(PasswordResetToken.user_id == user.id, PasswordResetToken.created_at > now - timedelta(hours=1))
+    )
+    if recent >= RESET_MAX_PER_HOUR:
+        return None  # 응답은 같게 하고 메일만 보내지 않는다
     token = new_refresh_token()
     db.add(
         PasswordResetToken(user_id=user.id, token_hash=hash_token(token), expires_at=now + RESET_TTL, created_at=now)

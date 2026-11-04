@@ -2,15 +2,16 @@
 인증 API (레퍼런스 7장 '인증·회원', 10장).
 
 POST /api/v1/auth/signup   회원가입
-POST /api/v1/auth/login    로그인: 본문으로 액세스 토큰, Set-Cookie 로 리프레시 토큰
+POST /api/v1/auth/login    로그인: 본문으로 액세스 토큰, Set-Cookie 로 리프레시 토큰. 실패가 많으면 429
 POST /api/v1/auth/refresh  액세스 토큰 재발급 (리프레시 쿠키, 회전)
 POST /api/v1/auth/logout   리프레시 토큰 폐기, 쿠키 삭제
 """
 
-from fastapi import APIRouter, Cookie, Response, status
+from fastapi import APIRouter, Cookie, Request, Response, status
 
 from app.core.config import get_settings
 from app.core.deps import DbSession, Now
+from app.core.errors import AppError
 from app.core.security import create_access_token
 from app.models import User
 from app.schemas.auth import (
@@ -23,7 +24,7 @@ from app.schemas.auth import (
     UserOut,
 )
 from app.services import auth as auth_service
-from app.services import mail
+from app.services import login_guard, mail
 from app.services.notifications import ensure_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -67,8 +68,19 @@ def signup(body: SignupIn, db: DbSession):
 
 
 @router.post("/login", response_model=TokenOut)
-def login(body: LoginIn, response: Response, db: DbSession, now: Now):
-    user = auth_service.authenticate(db, email=body.email, password=body.password)
+def login(body: LoginIn, request: Request, response: Response, db: DbSession, now: Now):
+    email = auth_service.normalize_email(body.email)
+    # 운영에서는 Nginx 가 X-Forwarded-For 에 실제 접속 IP 를 넣고 uvicorn --proxy-headers 가 client 로 옮긴다
+    ip = request.client.host if request.client else "unknown"
+
+    login_guard.check(db, email=email, ip=ip, now=now)  # 잠겨 있으면 비밀번호를 보지 않고 429
+    try:
+        user = auth_service.authenticate(db, email=email, password=body.password)
+    except AppError:
+        login_guard.record(db, email=email, ip=ip, succeeded=False, now=now)
+        db.commit()  # 에러 응답이어도 실패 기록은 남겨야 한다
+        raise
+    login_guard.record(db, email=email, ip=ip, succeeded=True, now=now)
     refresh = auth_service.issue_refresh_token(db, user, now)
     db.commit()
     _set_refresh_cookie(response, refresh)

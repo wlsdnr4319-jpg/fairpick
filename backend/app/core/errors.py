@@ -21,11 +21,12 @@ logger = logging.getLogger(__name__)
 class AppError(Exception):
     """라우터·서비스 어디서든 raise 하면 공통 에러 형식으로 응답한다."""
 
-    def __init__(self, status_code: int, code: str, message: str):
+    def __init__(self, status_code: int, code: str, message: str, headers: dict[str, str] | None = None):
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
+        self.headers = headers  # 예: 429 의 Retry-After
 
 
 def error_body(code: str, message: str) -> dict:
@@ -43,7 +44,7 @@ _HTTP_ERRORS: dict[int, tuple[str, str]] = {
 
 
 async def _app_error_handler(request: Request, exc: AppError) -> JSONResponse:
-    return JSONResponse(status_code=exc.status_code, content=error_body(exc.code, exc.message))
+    return JSONResponse(status_code=exc.status_code, content=error_body(exc.code, exc.message), headers=exc.headers)
 
 
 async def _http_error_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:

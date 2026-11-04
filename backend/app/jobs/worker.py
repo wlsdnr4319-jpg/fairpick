@@ -11,6 +11,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.core.config import get_settings
+from app.jobs.cleanup_job import cleanup
 from app.jobs.crawl_job import run_all
 from app.jobs.notify_job import select_and_send
 
@@ -26,6 +27,9 @@ def build_scheduler() -> BlockingScheduler:
         id="notify",
         max_instances=1,
         coalesce=True,
+    )
+    scheduler.add_job(
+        cleanup, CronTrigger(hour=3, minute=30, timezone=tz), id="cleanup", max_instances=1, coalesce=True
     )
     return scheduler
 
