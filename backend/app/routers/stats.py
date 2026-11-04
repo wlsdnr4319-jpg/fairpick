@@ -4,6 +4,8 @@
 GET /api/v1/stats/monthly?year=2026   월별·카테고리별 개최 수
 GET /api/v1/stats/categories          카테고리별 개최 수, 평균 기간, 무료 비율
 GET /api/v1/stats/venues              전시장별 개최 수와 가장 많은 카테고리
+GET /api/v1/stats/history?from_year=2019&to_year=2025
+                                      지난 행사 기록(fair_archive): 연도별·전시장별 수, 주제별로 많이 열리는 달
 
 공개(published)와 숨김(hidden) 박람회를 함께 센다. 지난 행사를 hidden 으로 넣어 분석에만 쓰기 때문이다.
 초안(draft)은 검수 전이라 뺀다.
@@ -16,7 +18,8 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, select
 
 from app.core.deps import DbSession
-from app.models import Category, Fair, Venue
+from app.models import Category, Fair, FairArchive, Venue
+from app.services.archive import OTHER, THEMES
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -123,3 +126,88 @@ def venues(db: DbSession):
         for name, v in by_venue.items()
     ]
     return sorted(out, key=lambda r: -r.count)
+
+
+class HistoryYear(BaseModel):
+    year: int
+    total: int
+    by_venue: dict[str, int]
+
+
+class ThemeMonths(BaseModel):
+    theme: str
+    total: int
+    by_month: list[int]  # 1월~12월 (개막일 기준, 여러 해 합계)
+    peak_months: list[int]  # 가장 많은 달 (같은 수면 모두)
+
+
+class History(BaseModel):
+    from_year: int
+    to_year: int
+    total: int
+    venues: list[str]  # 색을 고정하려고 전시장 id 순서로 준다
+    by_year: list[HistoryYear]
+    themes: list[ThemeMonths]  # THEMES 순서, '기타' 제외
+    other_total: int  # 주제를 붙이지 못한 행사 수
+
+
+@router.get("/history", response_model=History)
+def history(
+    db: DbSession,
+    from_year: Annotated[int, Query(ge=2000, le=2100)] = 2019,
+    to_year: Annotated[int, Query(ge=2000, le=2100)] = 2025,
+):
+    year = func.year(FairArchive.start_date)
+    month = func.month(FairArchive.start_date)
+    in_range = year.between(from_year, to_year)
+
+    venue_rows = db.execute(
+        select(Venue.id, Venue.name)
+        .where(Venue.id.in_(select(FairArchive.venue_id).where(in_range)))
+        .order_by(Venue.id)
+    ).all()
+    venues = [name for _, name in venue_rows]
+
+    by_year = {
+        y: HistoryYear(year=y, total=0, by_venue=dict.fromkeys(venues, 0)) for y in range(from_year, to_year + 1)
+    }
+    for y, venue, n in db.execute(
+        select(year, Venue.name, func.count())
+        .join(Venue, Venue.id == FairArchive.venue_id)
+        .where(in_range)
+        .group_by(year, Venue.name)
+    ):
+        by_year[y].by_venue[venue] = n
+        by_year[y].total += n
+
+    months: dict[str, list[int]] = {t: [0] * 12 for t in THEMES}
+    other = 0
+    for theme, m, n in db.execute(
+        select(FairArchive.theme, month, func.count()).where(in_range).group_by(FairArchive.theme, month)
+    ):
+        if theme == OTHER or theme not in months:
+            other += n
+        else:
+            months[theme][m - 1] = n
+
+    themes = []
+    for theme, counts in months.items():
+        top = max(counts)
+        themes.append(
+            ThemeMonths(
+                theme=theme,
+                total=sum(counts),
+                by_month=counts,
+                peak_months=[i + 1 for i, c in enumerate(counts) if top and c == top],
+            )
+        )
+    total = sum(y.total for y in by_year.values())
+    return History(
+        from_year=from_year,
+        to_year=to_year,
+        total=total,
+        venues=venues,
+        by_year=list(by_year.values()),
+        themes=themes,
+        other_total=other,
+    )

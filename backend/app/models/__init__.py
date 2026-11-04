@@ -1,5 +1,6 @@
 """모든 모델을 여기서 import 해 Base.metadata 에 등록한다. Alembic autogenerate 가 이 목록을 본다."""
 
+from app.models.archive import FairArchive
 from app.models.bookmark import Bookmark
 from app.models.category import Category
 from app.models.crawl import CrawledItem, CrawlRun, CrawlSource
@@ -26,6 +27,7 @@ __all__ = [
     "CrawlSource",
     "CrawledItem",
     "Fair",
+    "FairArchive",
     "FairChangeLog",
     "LoginAttempt",
     "Notification",
