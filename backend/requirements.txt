@@ -1,0 +1,20 @@
+# 실행
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic-settings==2.16.2
+
+# DB
+SQLAlchemy==2.1.8
+alembic==1.20.1
+PyMySQL==1.2.3
+cryptography==50.0.2   # PyMySQL 이 MySQL 8 기본 인증(caching_sha2_password)에 필요
+
+# 인증 (4주차)
+PyJWT==2.15.1
+pwdlib[argon2]==0.3.1
+
+# 수집·테스트
+httpx==0.28.1
+httpx2==2.16.0          # FastAPI TestClient 용 (starlette 가 httpx2 를 권장)
+pytest==9.2.0
+ruff==0.17.3
