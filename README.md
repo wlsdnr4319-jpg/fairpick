@@ -39,7 +39,7 @@ fairpick/
 # 0. 환경 변수
 copy .env.example .env        # 값 채우기
 
-# 1. DB
+# 1. DB (호스트 포트 3308. 3306 은 로컬 MySQL 과 겹치기 쉬워 피했다)
 docker compose up -d db
 
 # 2. 백엔드 (터미널 1)
@@ -47,6 +47,8 @@ cd backend
 py -3.13 -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+alembic upgrade head          # 테이블 만들기
+python -m app.scripts.seed    # 카테고리·태그·전시장·박람회 30건 (여러 번 실행해도 됨)
 uvicorn app.main:app --reload --port 8000
 # API 문서: http://localhost:8000/docs
 
@@ -58,6 +60,19 @@ npm run dev
 ```
 
 테스트: `cd backend` 후 `pytest`, 린트: `ruff check .`
+
+- 테스트는 SQLite 가 아니라 Docker MySQL 의 `fairpick_test` DB 에서 돈다. 매 실행마다 마이그레이션으로 다시 만들고, 테스트마다 롤백한다.
+- `fairpick_test` 는 MySQL 컨테이너를 처음 만들 때 `docker/mysql-init` 스크립트가 만든다.
+
+## API (현재)
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| GET | `/api/v1/health` | 서버 상태 (`?db=true` 면 DB 연결까지 확인) |
+| GET | `/api/v1/fairs` | 공개 박람회 목록, 개막순, `page`·`size`(최대 50) |
+| GET | `/api/v1/fairs/{fair_id}` | 박람회 상세. 비공개·없는 박람회는 404 `FAIR_NOT_FOUND` |
+
+진행 상태(`progress`)와 D-day 는 DB 에 저장하지 않고, 조회할 때 한국 시간 기준 오늘 날짜로 계산한다.
 
 ## 문서
 
