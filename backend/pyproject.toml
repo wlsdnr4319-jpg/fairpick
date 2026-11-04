@@ -13,3 +13,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# 시드 데이터는 긴 한글 소개글과 인코딩된 URL 이 있어 줄 길이 제한을 두지 않는다
+"app/scripts/seed_data.py" = ["E501"]
