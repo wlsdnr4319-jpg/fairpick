@@ -35,7 +35,7 @@ class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    email: str
+    email: str | None  # 소셜 로그인으로 가입하고 이메일 제공에 동의하지 않으면 없다
     nickname: str
     role: Literal["user", "admin"]
 

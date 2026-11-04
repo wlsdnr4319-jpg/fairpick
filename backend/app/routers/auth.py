@@ -34,7 +34,7 @@ REFRESH_COOKIE = "refresh_token"
 REFRESH_COOKIE_PATH = "/api/v1/auth"
 
 
-def _set_refresh_cookie(response: Response, token: str) -> None:
+def set_refresh_cookie(response: Response, token: str) -> None:
     settings = get_settings()
     response.set_cookie(
         REFRESH_COOKIE,
@@ -83,7 +83,7 @@ def login(body: LoginIn, request: Request, response: Response, db: DbSession, no
     login_guard.record(db, email=email, ip=ip, succeeded=True, now=now)
     refresh = auth_service.issue_refresh_token(db, user, now)
     db.commit()
-    _set_refresh_cookie(response, refresh)
+    set_refresh_cookie(response, refresh)
     return _token_out(user)
 
 
@@ -96,7 +96,7 @@ def refresh(
 ):
     user, new_refresh = auth_service.rotate_refresh_token(db, refresh_token, now)
     db.commit()
-    _set_refresh_cookie(response, new_refresh)
+    set_refresh_cookie(response, new_refresh)
     return _token_out(user)
 
 
