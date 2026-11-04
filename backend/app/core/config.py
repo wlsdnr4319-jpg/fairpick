@@ -14,7 +14,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str = "mysql+pymysql://fairpick:change-me@localhost:3306/fairpick?charset=utf8mb4"
+    database_url: str = "mysql+pymysql://fairpick:change-me@localhost:3308/fairpick?charset=utf8mb4"
 
     jwt_secret: str = "dev-only-secret-change-me"
     access_token_minutes: int = 30
