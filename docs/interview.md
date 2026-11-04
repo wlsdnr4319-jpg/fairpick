@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | 진행 상태를 왜 DB 에 저장하지 않았나요? | 날짜로 계산되는 값을 저장하면 매일 갱신해야 하고 어긋난다. '오늘'은 앱에서 KST 로 계산해 넘긴다 | `app/core/timeutil.py` |
 | 수집한 데이터를 왜 바로 공개하지 않나요? | 일반인 관람 여부는 자동 판별이 어렵고 틀린 정보는 신뢰를 잃는다. 검수 큐에서 사람이 채운 뒤 승인 | `app/services/crawl.py`, `routers/admin_crawl.py` |
+| 수집 대상은 어떻게 정했나요? | 전시장 8곳의 robots.txt 를 확인해 허용된 6곳만 수집. Cloudflare 로 막거나 robots.txt 로 금지한 aT센터·벡스코는 우회하지 않고 직접 등록. 확인 결과는 `crawl_sources.policy_note` 에 남김. 요청 간 2초, User-Agent 에 연락처 | `app/scripts/seed_data.py` |
 | 사이트 구조가 바뀌면? | 수집 실패를 `crawl_runs` 에 남기고 2회 연속이면 관리자 메일. 수동 입력으로 서비스 유지, fixture 를 새로 저장해 파서 수정 | `alert_if_repeated_failures`, `tests/fixtures/html` |
 | 알림이 중복으로 안 간다는 걸 어떻게 보장하나요? | UNIQUE 제약 + `INSERT IGNORE`. 작업이 두 번 돌아도 1건. 테스트로 확인 | `services/notifications.py`, `tests/test_notifications.py` |
 | 인덱스는 어떤 기준으로 만들었나요? | 실제 WHERE·ORDER BY 조합: `(status, start_date)` 개막순, `(status, end_date)` 진행 중 필터, `prereg_end_at` 마감 임박, ngram FULLTEXT 검색 | `models/fair.py` |
