@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-only-secret-change-me"
     access_token_minutes: int = 30
     refresh_token_days: int = 14
+    # 운영(HTTPS)에서는 true. 개발 서버(http://localhost)에서는 Secure 쿠키가 저장되지 않아 false
+    cookie_secure: bool = False
 
     app_tz: str = "Asia/Seoul"
 

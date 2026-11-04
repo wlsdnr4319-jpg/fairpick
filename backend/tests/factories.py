@@ -75,3 +75,17 @@ def bookmark(db: Session, user: User, fair: Fair) -> Bookmark:
     db.add(obj)
     db.flush()
     return obj
+
+
+def auth_header(user: User) -> dict[str, str]:
+    """로그인 과정 없이 바로 쓸 수 있는 액세스 토큰 헤더."""
+    from app.core.security import create_access_token
+
+    return {"Authorization": f"Bearer {create_access_token(user.id, user.role)}"}
+
+
+def admin(db: Session) -> User:
+    obj = user(db)
+    obj.role = "admin"
+    db.flush()
+    return obj

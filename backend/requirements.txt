@@ -13,6 +13,7 @@ cryptography==50.0.2   # PyMySQL 이 MySQL 8 기본 인증(caching_sha2_password
 # 인증 (4주차)
 PyJWT==2.15.1
 pwdlib[argon2]==0.3.1
+email-validator==2.3.0  # 회원가입 이메일 형식 검사 (Pydantic EmailStr)
 
 # 수집·테스트
 httpx==0.28.1
