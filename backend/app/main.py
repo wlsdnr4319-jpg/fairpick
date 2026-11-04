@@ -9,8 +9,9 @@ API 문서: http://localhost:8000/docs
 """
 
 import logging
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
@@ -18,6 +19,7 @@ from app.core.errors import register_exception_handlers
 from app.routers import admin, admin_crawl, auth, fairs, health, me, refs
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+request_logger = logging.getLogger("app.request")
 
 API_PREFIX = "/api/v1"
 
@@ -42,6 +44,21 @@ def create_app() -> FastAPI:
     )
 
     register_exception_handlers(app)
+
+    # 요청 로그: 경로, 상태 코드, 소요 시간 (레퍼런스 14장). 쿼리스트링·본문·토큰은 남기지 않는다
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        if request.url.path != f"{API_PREFIX}/health":
+            request_logger.info(
+                "%s %s %s %.0fms",
+                request.method,
+                request.url.path,
+                response.status_code,
+                (time.perf_counter() - start) * 1000,
+            )
+        return response
 
     app.include_router(health.router, prefix=API_PREFIX)
     for module in (auth, me, fairs, refs, admin, admin_crawl):

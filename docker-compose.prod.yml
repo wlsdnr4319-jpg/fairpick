@@ -1,0 +1,73 @@
+# 운영(서버 한 대) 구성: nginx + api + worker + db (레퍼런스 14장 서비스 구성)
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# 자세한 순서는 docs/deploy.md. 개발용 DB 만 띄울 때는 docker-compose.yml 을 쓴다.
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: fairpick
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    # 외부 포트는 열지 않는다 (3306 은 서버 밖에서 막는다)
+    volumes:
+      - prod_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${API_WORKERS:-2} --proxy-headers --forwarded-allow-ips "*"
+    env_file: .env
+    environment:
+      # 컨테이너 안에서는 DB 호스트가 db 다
+      DATABASE_URL: mysql+pymysql://${DB_USER}:${DB_PASSWORD}@db:3306/fairpick?charset=utf8mb4
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 수집·알림 스케줄러. 반드시 1개만 띄운다 (같은 작업이 여러 번 돌지 않게)
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    command: python -m app.jobs.worker
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql+pymysql://${DB_USER}:${DB_PASSWORD}@db:3306/fairpick?charset=utf8mb4
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+      # HTTPS 를 켤 때 아래 줄의 주석을 풀어 HTTPS 설정으로 바꾼다 (docs/deploy.md)
+      # - ./deploy/nginx.https.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [api]
+
+  # 인증서 발급·갱신용. 평소에는 실행하지 않는다: docker compose -f docker-compose.prod.yml run --rm certbot ...
+  certbot:
+    image: certbot/certbot
+    profiles: ["tools"]
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+volumes:
+  prod_db_data:
+  letsencrypt:
+  certbot_www:
