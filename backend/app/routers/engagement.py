@@ -13,6 +13,7 @@ GET    /api/v1/fairs/{fair_id}/tag-votes             투표 가능한 태그와 
 PUT    /api/v1/fairs/{fair_id}/tag-votes/{tag_id}    태그 투표 (멱등)
 DELETE /api/v1/fairs/{fair_id}/tag-votes/{tag_id}    투표 취소
 POST   /api/v1/notifications/unsubscribe             알림 메일 수신 거부 (로그인 없이 토큰으로)
+GET    /api/v1/fairs/{fair_id}/calendar.ics          캘린더 파일 내보내기 (F-24)
 
 /fairs/calendar 는 /fairs/{fair_id} 보다 먼저 등록해야 한다. 이 라우터를 fairs 라우터보다 먼저 include 한다.
 """
@@ -332,3 +333,51 @@ def unsubscribe(db: DbSession, body: UnsubscribeIn):
     if not re.fullmatch(r"[A-Za-z0-9_\-]+", body.token) or not notifications.unsubscribe(db, body.token):
         raise AppError(404, "INVALID_UNSUBSCRIBE_TOKEN", "수신 거부 링크가 올바르지 않아요")
     return MessageOut(message="알림 메일 수신을 거부했어요. 마이페이지에서 다시 켤 수 있어요")
+
+
+# ---------------------------------------------------------------------------
+# 캘린더 파일 내보내기 (F-24)
+# ---------------------------------------------------------------------------
+
+
+_ICS_ESCAPES = {"\\": "\\\\", ";": "\\;", ",": "\\,", "\n": "\\n"}
+
+
+def _ics_escape(value: str) -> str:
+    """iCalendar TEXT 값 이스케이프: 역슬래시, 세미콜론, 쉼표, 줄바꿈"""
+    return "".join(_ICS_ESCAPES.get(ch, ch) for ch in value)
+
+
+@router.get("/fairs/{fair_id}/calendar.ics")
+def fair_ics(db: DbSession, fair_id: FairId):
+    from datetime import UTC, datetime, timedelta
+
+    from app.core.config import get_settings
+
+    f = _fair_or_404(db, fair_id)
+    base = get_settings().app_base_url.rstrip("/")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    location = f"{f.venue.name} {f.hall}".strip() if f.hall else f.venue.name
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//FairPick//KO",
+        "CALSCALE:GREGORIAN",
+        "BEGIN:VEVENT",
+        f"UID:fair-{f.id}@fairpick",
+        f"DTSTAMP:{stamp}",
+        # 종일 일정: 끝 날짜는 다음 날로 적는다 (iCalendar 규칙)
+        f"DTSTART;VALUE=DATE:{f.start_date:%Y%m%d}",
+        f"DTEND;VALUE=DATE:{f.end_date + timedelta(days=1):%Y%m%d}",
+        f"SUMMARY:{_ics_escape(f.title)}",
+        f"LOCATION:{_ics_escape(location)}",
+        f"URL:{base}/fairs/{f.id}",
+        f"DESCRIPTION:{_ics_escape('일정과 입장 조건은 주최 측 공식 사이트에서 최종 확인하세요.')}",
+        "END:VEVENT",
+        "END:VCALENDAR",
+    ]
+    return Response(
+        content="\r\n".join(lines) + "\r\n",  # iCalendar 는 줄 끝이 CRLF
+        media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="fairpick-{f.id}.ics"'},
+    )

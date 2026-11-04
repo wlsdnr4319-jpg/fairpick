@@ -149,3 +149,37 @@ def test_crawl_alert_after_two_failures(db):
     db.flush()
     assert alert_if_repeated_failures(db, src) is True
     assert "수집 연속 실패" in mail.outbox[-1]["Subject"]
+
+
+def test_ics_export(db, client):
+    fair = f.fair(
+        db,
+        category=f.category(db),
+        venue=f.venue(db, name="코엑스"),
+        title="서울카페쇼, 2026; 커피",
+        hall="A홀",
+        start=date(2026, 11, 11),
+        end=date(2026, 11, 14),
+    )
+    res = client.get(f"/api/v1/fairs/{fair.id}/calendar.ics")
+    assert res.status_code == 200 and res.headers["content-type"].startswith("text/calendar")
+    body = res.text
+    assert "DTSTART;VALUE=DATE:20261111\r\n" in body
+    assert "DTEND;VALUE=DATE:20261115\r\n" in body  # 종일 일정은 다음 날로 끝난다
+    assert "SUMMARY:서울카페쇼\, 2026\; 커피\r\n" in body
+    assert "LOCATION:코엑스 A홀\r\n" in body
+
+
+def test_admin_excel_export(db, client):
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    fair = f.fair(db, category=f.category(db), venue=f.venue(db), title="엑셀 테스트")
+    f.bookmark(db, f.user(db), fair)
+    res = client.get("/api/v1/admin/export/fairs.xlsx", headers=f.auth_header(f.admin(db)))
+    assert res.status_code == 200
+    ws = load_workbook(BytesIO(res.content)).active
+    assert ws["C1"].value == "박람회명" and ws["C2"].value == "엑셀 테스트"
+    assert ws["P2"].value == 1  # 북마크 수
+    assert client.get("/api/v1/admin/export/fairs.xlsx", headers=f.auth_header(f.user(db))).status_code == 403
