@@ -1,80 +1,148 @@
 # 페어픽 (FairPick)
 
-일반인이 즐길 수 있는 식음료·문화·이색 박람회를 한곳에 모으고, 관람 조건과 사전등록 마감까지 알려주는 웹 서비스입니다.
+**일반인이 즐길 수 있는 식음료·문화·이색 박람회를 한곳에 모으고, 관람 조건과 사전등록 마감까지 알려주는 웹 서비스입니다.**
 
-> 개발 중 — 1주차: 설계와 환경. 8주차에 MVP를 배포할 예정입니다.
+> 배포 링크·데모 GIF: 서버 배포 후 추가 예정 ([배포 가이드](docs/deploy.md))
 
-## 왜 만드나
+## 만든 이유
 
-- 박람회 일정이 코엑스, 킨텍스, aT센터, 벡스코 등 전시장 사이트마다 흩어져 있습니다.
-- 업계 종사자 대상(B2B) 행사인지, 일반인도 입장할 수 있는지 한눈에 알기 어렵습니다.
-- 사전등록하면 무료나 할인인 행사가 있지만, 마감일을 놓치기 쉽습니다.
+- 박람회 일정이 코엑스, 킨텍스, aT센터, 벡스코 등 **전시장 사이트마다 흩어져** 있습니다.
+- 업계 종사자 대상(B2B) 행사인지, **일반인도 입장할 수 있는지** 한눈에 알기 어렵습니다.
+- 사전등록하면 무료나 할인인 행사가 많지만 **마감일을 놓치기 쉽습니다.**
+- 데이트·주말 나들이 관점의 정보(체험, 시식, 이색 요소)는 공식 사이트에 정리돼 있지 않습니다.
+
+## 주요 기능
+
+| 구분 | 기능 |
+| --- | --- |
+| 찾기 | 홈 큐레이션(이번 주말·사전등록 마감 임박), 카테고리·태그(모두 포함)·지역·기간·무료·일반인 관람 필터, 한글 전문 검색, 월간 캘린더 |
+| 상세 | 일반인 관람 여부(전체/일부 날짜/업계 전용), 현장·사전등록 입장료, 사전등록 D-day, 관람 팁, 정보 확인일, 지도, 공유, 캘린더(.ics) |
+| 회원 | 북마크(낙관적 업데이트), 관람 노트·공개 후기·좋아요, 태그 투표(3표 이상 반영), 비밀번호 재설정, 알림 설정, 탈퇴 |
+| 알림 | 사전등록 마감 D-1, 개막 D-3, 북마크한 박람회 정보 변경 메일. 중복 발송 없음, 로그인 없이 수신 거부 |
+| 수집 | 코엑스·킨텍스 일정 매일 04:00 자동 수집 → 검수 큐(정규화 결과·병합 후보) → 관리자 승인 후 공개 |
+| 관리 | 박람회 등록·수정·숨김, 검수, 수집 이력·연속 실패 메일, 엑셀 내보내기 |
+| 분석 | 월별·카테고리별·전시장별 통계 화면(`/report`), [pandas 분석 노트북](analysis/fairs_report.ipynb) |
 
 ## 기술 스택
 
-| 영역 | 선택 |
+| 영역 | 선택 | 이유 |
+| --- | --- | --- |
+| 프론트엔드 | React 19 + Vite, React Router, TanStack Query, Tailwind CSS, Recharts | 서버 데이터는 Query 캐시로, 필터 상태는 URL 쿼리스트링으로 관리 |
+| 백엔드 | FastAPI (동기 `def` + 동기 SQLAlchemy) | `/docs` 자동 API 문서, Pydantic 검증. async 안에서 동기 DB 호출로 이벤트 루프가 막히는 문제를 피함 |
+| DB | MySQL 8.4, SQLAlchemy 2.0, Alembic | ENUM·CHECK·ngram FULLTEXT, 스키마 변경 이력 관리 |
+| 인증 | PyJWT + pwdlib(Argon2) | FastAPI 공식 튜토리얼 조합 |
+| 수집·작업 | httpx + BeautifulSoup, APScheduler(별도 워커), SMTP + Jinja2 | 워커를 API 와 분리해 API 를 여러 개 띄워도 작업이 한 번만 실행 |
+| 인프라 | Docker Compose, Nginx, GitHub Actions | 프론트와 API 를 한 도메인에 묶어 쿠키·CORS 문제 제거 |
+
+## 아키텍처
+
+```mermaid
+flowchart LR
+    B[브라우저] -->|HTTPS| N[Nginx]
+    N -->|정적 파일| F[React 빌드]
+    N -->|/api/| A[FastAPI ×2]
+    A --> D[(MySQL)]
+    W[워커<br/>APScheduler] -->|04:00 수집| S[전시장 사이트]
+    W -->|09:00 알림| M[메일 서버]
+    W --> D
+```
+
+브라우저는 Nginx 만 알고, 외부 사이트와 메일 서버에 닿는 것은 워커뿐입니다.
+
+## ERD (1단계)
+
+```mermaid
+erDiagram
+    users ||--o{ bookmarks : makes
+    fairs ||--o{ bookmarks : receives
+    venues ||--o{ fairs : hosts
+    categories ||--o{ fairs : groups
+    fairs ||--o{ fair_tags : has
+    tags ||--o{ fair_tags : labels
+    users ||--o{ visits : writes
+    fairs ||--o{ visits : gets
+    crawl_sources ||--o{ crawl_runs : logs
+    crawl_sources ||--o{ crawled_items : collects
+    fairs |o--o{ crawled_items : "linked to"
+    users ||--o{ notifications : receives
+    fairs ||--o{ notifications : triggers
+```
+
+컬럼과 인덱스: [docs/erd.md](docs/erd.md), [docs/schema.sql](docs/schema.sql)
+
+## 핵심 설계 3가지
+
+1. **수집 결과를 바로 공개하지 않는다 (검수 큐).** 일반인 관람 여부는 자동 판별이 어렵고 틀린 정보는 신뢰를 잃게 합니다. 크롤러는 이름·기간·장소만 가져오고, `content_hash` 로 새 항목·바뀐 항목만 검수 큐에 올립니다. 다른 소스의 같은 행사는 장소·기간·제목 유사도로 *병합 후보*만 보여주고 자동 병합하지 않습니다.
+2. **알림 중복 방지를 DB 가 보장한다.** `UNIQUE(user_id, fair_id, type, ref_key, channel)` + `INSERT IGNORE`. 같은 날 작업이 두 번 돌아도 알림은 1건이고, 사전등록 마감이 연장되면 `ref_key`(마감 일시)가 바뀌어 한 번 더 나갑니다.
+3. **진행 상태와 D-day 는 저장하지 않고 계산한다.** 저장하면 매일 갱신해야 하고 값이 어긋납니다. '오늘'은 DB 의 `CURDATE()` 가 아니라 앱에서 한국 시간으로 계산해 넘겨, UTC 서버에서 자정 무렵 하루 어긋나는 문제를 막습니다.
+
+그 밖에: 입장료 `NULL`(모름)과 `0`(무료)을 구분, 박람회는 지우지 않고 숨김, 리프레시 토큰은 httpOnly 쿠키 + 해시 저장 + 회전(폐기된 토큰 재사용 시 전체 폐기).
+
+## 트러블슈팅
+
+실제로 겪은 문제와 해결입니다. 자세한 내용: [docs/troubleshooting.md](docs/troubleshooting.md)
+
+| 문제 | 원인 | 해결 |
+| --- | --- | --- |
+| Windows 에서만 상세 API 가 500 | Windows 에 IANA 시간대 DB 가 없어 `ZoneInfo("Asia/Seoul")` 실패 | `tzdata` 패키지 추가 |
+| `alembic` 명령이 `UnicodeDecodeError` | Alembic 이 `alembic.ini` 를 OS 인코딩(cp949)으로 읽음 | 설정 파일은 ASCII 로만 작성 |
+| Nginx 보안 헤더가 일부 응답에서 사라짐 | `location` 안에 `add_header` 가 있으면 `server` 단 헤더를 물려받지 않음 | location 의 캐시 설정을 `expires` 로 바꿈 |
+| 검색 테스트만 결과 0건 | InnoDB FULLTEXT 인덱스는 커밋된 행만 본다. 테스트는 롤백 트랜잭션 안에서 돌았음 | 전문 검색 테스트는 데이터를 커밋하고 끝나면 지움 |
+| 로그인이 이유 없이 풀림 | 리프레시 토큰 회전 + 동시 재발급 요청 2개 → 두 번째가 '폐기 토큰 재사용'으로 탐지 | 재발급 요청을 하나로 묶는 single-flight |
+| `"12.30 ~ 1.2"` 는 되는데 `"2026.11.22 ~ 2026.11.19"` 도 통과 | 해 넘김 규칙이 끝 연도를 명시한 경우에도 적용됨 | 끝 연도를 생략했을 때만 해 넘김으로 해석 |
+
+## 테스트 전략
+
+깨지기 쉬운 곳에 테스트를 모았습니다. 백엔드 **105개**, 모두 SQLite 가 아닌 **MySQL 8.4** 에서 실행합니다 (ENUM·CHECK·INSERT IGNORE·FULLTEXT 문법 차이로 테스트만 통과하는 일을 막기 위해).
+
+| 대상 | 무엇을 지키나 |
 | --- | --- |
-| 프론트엔드 | React + Vite, React Router, TanStack Query, Tailwind CSS |
-| 백엔드 | FastAPI, SQLAlchemy 2.0 + Alembic, Pydantic |
-| DB | MySQL 8 (Docker) |
-| 인증 | PyJWT + pwdlib(Argon2) |
-| 수집 | httpx + BeautifulSoup, APScheduler |
-| 인프라 | Docker Compose, Nginx |
+| 날짜·장소 정규화 (순수 함수) | 사이트마다 다른 표기, 해 넘김, 요일 표기, 별칭·홀 분리 |
+| 파서 | 저장한 실제 HTML fixture 로만 검증 (실제 사이트에 요청하지 않음) |
+| 박람회 API | 필터 조합, 기간 겹침, 태그 '모두 포함', 정렬, 비공개 404 |
+| 인증·권한 | 만료 토큰 401, 리프레시 회전·재사용 탐지, 일반 사용자의 관리자 API 403 |
+| 북마크·투표·좋아요 | 같은 요청을 두 번 보내도 결과가 같다 (멱등성) |
+| 알림 | 같은 날 두 번 실행해도 1건, 마감 연장 시 재발송, 3회 실패 후 failed |
+| 마이그레이션 | 테스트 DB 를 매번 Alembic 으로 만들어 마이그레이션도 함께 검증 |
 
-## 저장소 구조
-
-```
-fairpick/
-├── backend/            FastAPI 앱 (app/), 테스트 (tests/)
-├── frontend/           React + Vite
-├── docs/               ERD, 테이블 SQL
-└── docker-compose.yml  로컬 개발용 MySQL
-```
+시간에 따라 결과가 바뀌는 로직은 `today`·`now` 를 의존성으로 받아 테스트에서 날짜를 고정합니다.
 
 ## 로컬 실행
 
 준비물: Python 3.12+, Node.js 20+, Docker Desktop
 
 ```powershell
-# 0. 환경 변수
-copy .env.example .env        # 값 채우기
+copy .env.example .env                 # 값 채우기
+docker compose up -d db                # MySQL (호스트 포트 3308)
 
-# 1. DB (호스트 포트 3308. 3306 은 로컬 MySQL 과 겹치기 쉬워 피했다)
-docker compose up -d db
-
-# 2. 백엔드 (터미널 1)
+# 백엔드 (터미널 1)
 cd backend
-py -3.13 -m venv .venv
-.venv\Scripts\activate
+py -3.13 -m venv .venv; .venv\Scripts\activate
 pip install -r requirements.txt
-alembic upgrade head          # 테이블 만들기
-python -m app.scripts.seed    # 카테고리·태그·전시장·박람회 30건 (여러 번 실행해도 됨)
-uvicorn app.main:app --reload --port 8000
-# API 문서: http://localhost:8000/docs
+alembic upgrade head
+python -m app.scripts.seed             # 카테고리·태그·전시장·실제 박람회 30건
+python -m app.scripts.create_admin --email 내이메일
+uvicorn app.main:app --reload --port 8000      # API 문서: http://localhost:8000/docs
+pytest                                          # 테스트
 
-# 3. 프론트엔드 (터미널 2)
+# 프론트 (터미널 2)
 cd frontend
 npm install
-npm run dev
-# http://localhost:5173  (/api 요청은 백엔드로 프록시)
+npm run dev                            # http://localhost:5173
+
+# 수집·알림 워커 (선택)
+python -m app.jobs.crawl_job           # 한 번 수집
+python -m app.jobs.worker              # 스케줄러
 ```
 
-테스트: `cd backend` 후 `pytest`, 린트: `ruff check .`
-
-- 테스트는 SQLite 가 아니라 Docker MySQL 의 `fairpick_test` DB 에서 돈다. 매 실행마다 마이그레이션으로 다시 만들고, 테스트마다 롤백한다.
-- `fairpick_test` 는 MySQL 컨테이너를 처음 만들 때 `docker/mysql-init` 스크립트가 만든다.
-
-## API (현재)
-
-| 메서드 | 경로 | 설명 |
-| --- | --- | --- |
-| GET | `/api/v1/health` | 서버 상태 (`?db=true` 면 DB 연결까지 확인) |
-| GET | `/api/v1/fairs` | 공개 박람회 목록, 개막순, `page`·`size`(최대 50) |
-| GET | `/api/v1/fairs/{fair_id}` | 박람회 상세. 비공개·없는 박람회는 404 `FAIR_NOT_FOUND` |
-
-진행 상태(`progress`)와 D-day 는 DB 에 저장하지 않고, 조회할 때 한국 시간 기준 오늘 날짜로 계산한다.
+메일을 화면으로 확인하려면 `docker compose --profile mail up -d mailpit` 후 `.env` 에 `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_STARTTLS=false` (http://localhost:8025).
 
 ## 문서
 
-- [ERD](docs/erd.md)
-- [1단계 테이블 SQL](docs/schema.sql)
+- [배포 가이드](docs/deploy.md) · [트러블슈팅](docs/troubleshooting.md) · [면접 준비 노트](docs/interview.md) · [ERD](docs/erd.md)
+
+## 회고와 다음 계획
+
+- 수집 소스를 aT센터·SETEC·벡스코로 늘리고, 지난 행사를 수집해 계절별 추이 분석을 보강
+- 소셜 로그인(카카오·구글), 웹 푸시(같은 `notifications` 테이블에 `channel='push'`), 로그인 시도 횟수 제한
+- 전시장 좌표를 채워 지도 화면 제공
