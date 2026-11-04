@@ -56,3 +56,9 @@
 - **증상:** matplotlib 차트의 한글이 네모로, '문화·예술' 의 '·' 이 빈칸으로 나온다.
 - **원인:** 기본 폰트에 한글이 없고, 맑은 고딕에는 가운뎃점(U+00B7) 글자가 없다.
 - **해결:** `font.family = "Malgun Gothic"` 지정, 표시용 이름의 '·' 을 한글 가운뎃점 'ㆍ'(U+318D)로 바꿨다.
+
+## 10. IP 기준 로그인 제한을 헤더 하나로 피할 수 있었음 (구현 중 발견)
+
+- **증상(예상):** 공격자가 요청마다 `X-Forwarded-For: 1.2.3.<n>` 을 바꿔 보내면 IP 당 실패 횟수 제한에 걸리지 않는다.
+- **원인:** Nginx 가 `$proxy_add_x_forwarded_for` 로 클라이언트가 보낸 값 뒤에 실제 IP 를 *덧붙였고*, uvicorn 은 `--forwarded-allow-ips "*"` 라 목록의 맨 앞(클라이언트가 쓴 값)을 접속 IP 로 썼다.
+- **해결:** Nginx 가 맨 앞단이므로 `proxy_set_header X-Forwarded-For $remote_addr;` 로 덮어쓴다. 추가로 Nginx `limit_req` 로 인증 API 를 IP 당 분당 30회(순간 20회)로 제한하고, 넘으면 앱과 같은 JSON 에러 형식으로 429 를 준다. `nginx -t` 와 실제 요청으로 429 를 확인했다.

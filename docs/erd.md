@@ -119,4 +119,4 @@ erDiagram
 - **`price_onsite = NULL`과 `0`은 다르다.** NULL은 아직 모름, 0은 무료다.
 - **박람회는 지우지 않는다.** `status = 'hidden'`으로 숨겨 북마크 기록을 보존한다.
 - **수집 결과는 바로 공개되지 않는다.** `crawled_items`(검수 큐)에 쌓인 뒤 관리자가 승인해야 `fairs`가 된다.
-- **2단계 이후 테이블**(visits, visit_likes, tag_votes, notification_settings, notifications, fair_change_logs, password_reset_tokens, social_accounts)은 해당 주차에 Alembic 마이그레이션으로 추가한다.
+- **2단계 이후 테이블**(visits, visit_likes, tag_votes, notification_settings, notifications, fair_change_logs, password_reset_tokens, login_attempts, social_accounts)은 해당 주차에 Alembic 마이그레이션으로 추가한다.
