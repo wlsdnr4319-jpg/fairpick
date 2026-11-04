@@ -37,6 +37,9 @@ export default function Login() {
         </button>
       </form>
       <p className="text-center text-sm text-gray-600">
+        <Link to="/reset-password" className="text-gray-500 underline">비밀번호를 잊으셨나요?</Link>
+      </p>
+      <p className="text-center text-sm text-gray-600">
         처음이신가요? <Link to="/signup" className="text-indigo-600">회원가입</Link>
       </p>
     </AuthCard>

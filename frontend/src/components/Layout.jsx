@@ -16,6 +16,9 @@ export default function Layout() {
           <NavLink to="/fairs" className={nav}>
             박람회 찾기
           </NavLink>
+          <NavLink to="/calendar" className={(s) => `${nav(s)} hidden sm:inline`}>
+            캘린더
+          </NavLink>
           {ready && user && (
             <>
               <NavLink to="/mypage" className={nav}>

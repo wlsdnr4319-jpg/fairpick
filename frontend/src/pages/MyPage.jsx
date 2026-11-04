@@ -7,6 +7,7 @@ import FairCard from '../components/FairCard'
 import Pagination from '../components/Pagination'
 import { EmptyState, ErrorState, SkeletonGrid } from '../components/States'
 import { useAuth } from '../store/AuthContext'
+import { NotificationSettings } from './Account'
 
 // 마이페이지: 북마크 모아보기 (F-07)
 export default function MyPage() {
@@ -21,9 +22,14 @@ export default function MyPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{user.nickname}님의 북마크</h1>
-        <Link to="/mypage/settings" className="text-sm text-gray-600 underline">
-          계정 설정
-        </Link>
+        <div className="flex gap-3 text-sm text-gray-600">
+          <Link to="/mypage/visits" className="underline">
+            관람 노트
+          </Link>
+          <Link to="/mypage/settings" className="underline">
+            계정 설정
+          </Link>
+        </div>
       </div>
       {isPending && <SkeletonGrid count={3} />}
       {isError && <ErrorState onRetry={refetch} />}
@@ -80,7 +86,7 @@ export function Settings() {
           <dd>{user.nickname}</dd>
         </div>
       </dl>
-      <p className="text-sm text-gray-500">알림 설정은 다음 업데이트에서 제공돼요.</p>
+      <NotificationSettings />
       <section className="space-y-2 rounded-xl border border-red-200 p-4">
         <h2 className="font-semibold text-red-700">회원 탈퇴</h2>
         <p className="text-sm text-gray-600">이메일, 닉네임, 북마크가 바로 지워져요.</p>

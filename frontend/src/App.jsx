@@ -4,6 +4,8 @@ import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import AdminFairEdit from './pages/admin/AdminFairEdit.jsx'
 import AdminFairs from './pages/admin/AdminFairs.jsx'
 import AdminReview, { AdminCrawlRuns } from './pages/admin/AdminReview.jsx'
+import { MyVisits, ResetPassword, Unsubscribe } from './pages/Account.jsx'
+import Calendar from './pages/Calendar.jsx'
 import FairDetail from './pages/FairDetail.jsx'
 import FairList from './pages/FairList.jsx'
 import Home from './pages/Home.jsx'
@@ -23,17 +25,21 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/fairs" element={<FairList />} />
         <Route path="/fairs/:fairId" element={<FairDetail />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
 
         <Route element={<GuestOnlyRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mypage/settings" element={<Settings />} />
+          <Route path="/mypage/visits" element={<MyVisits />} />
         </Route>
 
         <Route element={<AdminRoute />}>

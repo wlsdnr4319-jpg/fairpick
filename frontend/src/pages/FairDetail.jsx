@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { errorCode, errorMessage } from '../api/client'
 import { StatusBadge, TagChip } from '../components/Badges'
 import BookmarkButton from '../components/BookmarkButton'
+import { MyVisit, Reviews, TagVotes } from '../components/FairEngagement'
 import { ErrorState } from '../components/States'
 import { useFair } from '../hooks/useFairs'
 import { deadlineDDay, formatDateTime, formatPeriod, formatPrice, PUBLIC_ACCESS_LABEL } from '../utils/format'
@@ -66,6 +67,10 @@ export default function FairDetail() {
           )}
         </section>
       )}
+
+      <TagVotes fairId={fair.id} />
+      <MyVisit fairId={fair.id} />
+      <Reviews fairId={fair.id} />
 
       <footer className="space-y-1 text-sm text-gray-500">
         {fair.verified_at && <p>정보 확인일 {formatDateTime(fair.verified_at).split(' ')[0]}</p>}
