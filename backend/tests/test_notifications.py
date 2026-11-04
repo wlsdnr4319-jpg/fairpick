@@ -87,6 +87,15 @@ def test_turned_off_before_send_is_skipped(db, setup):
     assert mail.outbox == []
 
 
+def test_member_without_email_is_skipped(db, setup):
+    """소셜 로그인으로 가입하고 이메일 제공에 동의하지 않은 회원에게는 보낼 곳이 없다."""
+    select_targets(db, today=TODAY, now=NOW)
+    setup["user"].email = None
+    db.flush()
+    assert send_pending(db, now=NOW, base_url=BASE)["skipped"] == 2
+    assert mail.outbox == []
+
+
 def test_extended_deadline_sends_again(db, setup):
     select_targets(db, today=TODAY, now=NOW)
     setup["deadline"].prereg_end_at = datetime(2026, 11, 6, 14, 59)  # 하루 연장

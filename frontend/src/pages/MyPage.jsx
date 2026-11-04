@@ -79,7 +79,7 @@ export function Settings() {
       <dl className="space-y-2 rounded-xl border p-4 text-sm">
         <div className="flex gap-4">
           <dt className="w-16 text-gray-500">이메일</dt>
-          <dd>{user.email}</dd>
+          <dd>{user.email ?? <span className="text-gray-400">없음 (소셜 로그인으로 가입)</span>}</dd>
         </div>
         <div className="flex gap-4">
           <dt className="w-16 text-gray-500">닉네임</dt>

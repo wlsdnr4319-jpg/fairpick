@@ -10,6 +10,7 @@ import { Privacy, Terms } from './pages/Legal.jsx'
 import Login from './pages/Login.jsx'
 import MyPage, { Settings } from './pages/MyPage.jsx'
 import NotFound from './pages/NotFound.jsx'
+import OAuthCallback from './pages/OAuthCallback.jsx'
 import Signup from './pages/Signup.jsx'
 import { AdminRoute, GuestOnlyRoute, ProtectedRoute } from './routes/Guards.jsx'
 
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/report" element={<Report />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
 

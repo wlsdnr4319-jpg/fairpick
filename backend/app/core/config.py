@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # 메일 속 링크의 기준 주소 (프론트 주소)
     app_base_url: str = "http://localhost:5173"
 
+    # 소셜 로그인 (카카오·구글). 비어 있으면 그 로그인은 꺼진다 (버튼이 숨겨지고 시작 API 는 로그인 화면으로 돌려보냄)
+    # 콘솔에 등록할 Redirect URI: {APP_BASE_URL}/api/v1/auth/oauth/{kakao|google}/callback
+    kakao_client_id: str = ""  # REST API 키
+    kakao_client_secret: str = ""  # 카카오 콘솔에서 Client Secret 을 켰을 때만
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

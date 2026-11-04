@@ -15,7 +15,7 @@ from app.models.engagement import (
 from app.models.fair import Fair
 from app.models.login_attempt import LoginAttempt
 from app.models.tag import FairTag, Tag
-from app.models.user import RefreshToken, User
+from app.models.user import RefreshToken, SocialAccount, User
 from app.models.venue import Venue, VenueAlias
 
 __all__ = [
@@ -35,6 +35,7 @@ __all__ = [
     "VisitLike",
     "FairTag",
     "RefreshToken",
+    "SocialAccount",
     "Tag",
     "User",
     "Venue",

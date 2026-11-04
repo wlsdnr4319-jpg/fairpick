@@ -151,8 +151,9 @@ def send_pending(db: Session, *, now: datetime, base_url: str) -> dict[str, int]
         for n in batch:
             setting = db.get(NotificationSetting, n.user_id)
             enabled = setting is not None and setting.email_enabled and getattr(setting, n.type)
-            if not enabled or n.fair.status != "published":
-                n.status = "skipped"  # 발송 전에 알림을 껐거나 박람회가 숨겨졌다
+            if not enabled or n.fair.status != "published" or not n.user.email:
+                # 발송 전에 알림을 껐거나, 박람회가 숨겨졌거나, 이메일 없이 소셜 로그인으로 가입한 회원
+                n.status = "skipped"
                 counts["skipped"] += 1
                 progressed = True
                 continue

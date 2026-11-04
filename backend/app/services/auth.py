@@ -46,6 +46,10 @@ def authenticate(db: Session, *, email: str, password: str) -> User:
     if user is None:
         verify_password(password, DUMMY_PASSWORD_HASH)  # 응답 시간을 맞춘다
         raise AppError(401, "INVALID_CREDENTIALS", "이메일이나 비밀번호가 맞지 않아요")
+    if user.password_hash is None:
+        # 소셜 로그인으로만 가입한 회원. 비밀번호 재설정으로 비밀번호를 만들면 이메일 로그인도 된다
+        verify_password(password, DUMMY_PASSWORD_HASH)
+        raise AppError(401, "INVALID_CREDENTIALS", "이메일이나 비밀번호가 맞지 않아요")
     if not verify_password(password, user.password_hash):
         raise AppError(401, "INVALID_CREDENTIALS", "이메일이나 비밀번호가 맞지 않아요")
     return user
