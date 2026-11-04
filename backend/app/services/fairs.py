@@ -36,9 +36,7 @@ def list_fairs(
     base = apply_filters(select(Fair), f, today, now_utc)
 
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    fairs = db.scalars(
-        apply_sort(base, f).options(*LOAD_RELATIONS).offset((page - 1) * size).limit(size)
-    ).all()
+    fairs = db.scalars(apply_sort(base, f).options(*LOAD_RELATIONS).offset((page - 1) * size).limit(size)).all()
     return list(fairs), total
 
 
@@ -46,18 +44,12 @@ def bookmarked_ids(db: Session, user_id: int | None, fair_ids: list[int]) -> set
     """로그인 사용자가 북마크한 박람회 id. 비로그인이면 빈 집합."""
     if user_id is None or not fair_ids:
         return set()
-    return set(
-        db.scalars(
-            select(Bookmark.fair_id).where(Bookmark.user_id == user_id, Bookmark.fair_id.in_(fair_ids))
-        )
-    )
+    return set(db.scalars(select(Bookmark.fair_id).where(Bookmark.user_id == user_id, Bookmark.fair_id.in_(fair_ids))))
 
 
 def get_published_fair(db: Session, fair_id: int) -> Fair | None:
     """비공개(draft, hidden) 박람회는 없는 것과 똑같이 취급한다 (FAIR_NOT_FOUND)."""
-    return db.scalar(
-        select(Fair).where(Fair.id == fair_id, Fair.status == "published").options(*LOAD_RELATIONS)
-    )
+    return db.scalar(select(Fair).where(Fair.id == fair_id, Fair.status == "published").options(*LOAD_RELATIONS))
 
 
 def count_bookmarks(db: Session, fair_id: int) -> int:

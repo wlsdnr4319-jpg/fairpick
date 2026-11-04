@@ -18,9 +18,7 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))  # Argon2 (pwdlib)
     nickname: Mapped[str] = mapped_column(String(30))
-    role: Mapped[str] = mapped_column(
-        Enum("user", "admin", name="user_role"), default="user", server_default="user"
-    )
+    role: Mapped[str] = mapped_column(Enum("user", "admin", name="user_role"), default="user", server_default="user")
 
     # 탈퇴하면 토큰·북마크를 함께 지운다 (DB 의 ON DELETE CASCADE 와 맞춘다)
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(

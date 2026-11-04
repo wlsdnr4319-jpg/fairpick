@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
-from app.routers import admin, auth, fairs, health, me, refs
+from app.routers import admin, admin_crawl, auth, fairs, health, me, refs
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     app.include_router(health.router, prefix=API_PREFIX)
-    for module in (auth, me, fairs, refs, admin):
+    for module in (auth, me, fairs, refs, admin, admin_crawl):
         app.include_router(module.router, prefix=API_PREFIX)
 
     return app

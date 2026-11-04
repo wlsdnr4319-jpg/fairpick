@@ -198,8 +198,7 @@ FAIRS: list[dict] = [
         "end_date": date(2026, 11, 15),
         "public_access": "public",
         "summary": "강서권에서 열리는 출산·육아용품 박람회.",
-        "official_url": MAGOK
-        + "%eb%a7%88%ea%b3%a1-%eb%b2%a0%ed%8e%98-%eb%b2%a0%ec%9d%b4%eb%b9%84%ed%8e%98%ec%96%b4/",
+        "official_url": MAGOK + "%eb%a7%88%ea%b3%a1-%eb%b2%a0%ed%8e%98-%eb%b2%a0%ec%9d%b4%eb%b9%84%ed%8e%98%ec%96%b4/",
         "tags": ["kids", "shopping"],
         "verified": True,
     },
@@ -348,8 +347,7 @@ FAIRS: list[dict] = [
         "end_date": date(2026, 12, 6),
         "public_access": "public",
         "summary": "웹툰 작가와 작품, 굿즈를 만나는 웹툰 축제.",
-        "official_url": COEX
-        + "2026-%ec%9b%94%eb%93%9c-%ec%9b%b9%ed%88%b0-%ed%8e%98%ec%8a%a4%ed%8b%b0%eb%b2%8c/",
+        "official_url": COEX + "2026-%ec%9b%94%eb%93%9c-%ec%9b%b9%ed%88%b0-%ed%8e%98%ec%8a%a4%ed%8b%b0%eb%b2%8c/",
         "tags": ["unique", "date"],
         "verified": True,
     },
@@ -414,8 +412,7 @@ FAIRS: list[dict] = [
         "end_date": date(2026, 12, 20),
         "public_access": "public",
         "summary": "가구·조명·테이블웨어·연말 장식 브랜드가 모이는 리빙 박람회.",
-        "official_url": COEX
-        + "2026-%ed%99%88%ed%85%8c%ec%9d%b4%eb%b8%94%eb%8d%b0%ec%bd%94%ed%8e%98%ec%96%b4/",
+        "official_url": COEX + "2026-%ed%99%88%ed%85%8c%ec%9d%b4%eb%b8%94%eb%8d%b0%ec%bd%94%ed%8e%98%ec%96%b4/",
         "tags": ["shopping", "date"],
         "verified": True,
     },
@@ -463,5 +460,22 @@ FAIRS: list[dict] = [
         "summary": "부산에서 열리는 연말 베이비페어. 온라인 사전등록 시 무료로 입장한다.",
         "tags": ["kids", "shopping"],
         "verified": False,
+    },
+]
+
+
+# 수집 소스 (레퍼런스 8장). robots.txt·이용약관 확인 결과를 policy_note 에 남긴다 (15장 수집 정책)
+CRAWL_SOURCES = [
+    {
+        "parser_key": "coex",
+        "venue": "코엑스",
+        "list_url": "https://www.coex.co.kr/event/full-schedules/",
+        "policy_note": "robots.txt: 일반 크롤러는 /wp-admin/, /wp-content/uploads/ 만 금지. 일정 목록 허용. 하루 1회, 요청 간 2초 이상",
+    },
+    {
+        "parser_key": "kintex",
+        "venue": "킨텍스",
+        "list_url": "https://www.kintex.com/web/ko/event/list.do",
+        "policy_note": "robots.txt: 일반 크롤러는 /admin/, /login/ 만 금지. 행사 목록 허용. 하루 1회, 요청 간 2초 이상",
     },
 ]

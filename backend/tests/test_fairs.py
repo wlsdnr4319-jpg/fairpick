@@ -71,9 +71,7 @@ def test_progress_is_computed_from_today(db, client):
 def test_pagination(db, client):
     cat, ven = _setup(db)
     for day in range(1, 6):
-        f.fair(
-            db, category=cat, venue=ven, title=f"F{day}", start=date(2026, 12, day), end=date(2026, 12, day)
-        )
+        f.fair(db, category=cat, venue=ven, title=f"F{day}", start=date(2026, 12, day), end=date(2026, 12, day))
 
     body = client.get("/api/v1/fairs?page=2&size=2").json()
     assert body["total"] == 5

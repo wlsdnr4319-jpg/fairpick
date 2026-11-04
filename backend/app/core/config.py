@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # 쉼표로 여러 개: http://localhost:5173,http://127.0.0.1:5173
     cors_origins: str = Field(default="http://localhost:5173")
 
+    # 수집 요청 식별 (레퍼런스 8장: User-Agent 에 서비스 이름과 연락 이메일)
+    crawl_user_agent: str = "FairPickBot/1.0 (+contact@example.com)"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

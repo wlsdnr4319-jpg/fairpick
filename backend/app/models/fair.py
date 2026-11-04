@@ -77,9 +77,7 @@ class Fair(TimestampMixin, Base):
     visit_tip: Mapped[str | None] = mapped_column(Text)  # 주차, 붐비는 시간, 추천 동선
     image_url: Mapped[str | None] = mapped_column(String(500))
 
-    status: Mapped[str] = mapped_column(
-        Enum(*FAIR_STATUS, name="fair_status"), default="draft", server_default="draft"
-    )
+    status: Mapped[str] = mapped_column(Enum(*FAIR_STATUS, name="fair_status"), default="draft", server_default="draft")
     source: Mapped[str] = mapped_column(Enum(*FAIR_SOURCE, name="fair_source"))
     verified_at: Mapped[datetime | None] = mapped_column(DateTime)  # 정보 확인일
 

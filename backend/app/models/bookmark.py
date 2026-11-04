@@ -18,9 +18,7 @@ class Bookmark(Base):
     __tablename__ = "bookmarks"
     __table_args__ = (Index("ix_bookmarks_fair", "fair_id"),)
 
-    user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
-    )
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     fair_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("fairs.id"), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 

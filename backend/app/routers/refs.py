@@ -20,10 +20,7 @@ def categories(db: DbSession):
 
 @router.get("/tags", response_model=list[RefTag])
 def tags(db: DbSession):
-    return [
-        RefTag(slug=t.slug, name=t.name, is_votable=t.is_votable)
-        for t in db.scalars(select(Tag).order_by(Tag.id))
-    ]
+    return [RefTag(slug=t.slug, name=t.name, is_votable=t.is_votable) for t in db.scalars(select(Tag).order_by(Tag.id))]
 
 
 @router.get("/venues", response_model=list[RefVenue])

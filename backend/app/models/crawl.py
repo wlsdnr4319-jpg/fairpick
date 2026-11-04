@@ -80,9 +80,7 @@ class CrawledItem(Base):
     parsed_end_date: Mapped[date | None] = mapped_column(Date)
     parsed_venue_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("venues.id"))
     content_hash: Mapped[str] = mapped_column(CHAR(64))  # 제목·기간·장소 문자열의 SHA-256
-    change_status: Mapped[str] = mapped_column(
-        Enum("new", "changed", "unchanged", name="crawled_item_change_status")
-    )
+    change_status: Mapped[str] = mapped_column(Enum("new", "changed", "unchanged", name="crawled_item_change_status"))
     review_status: Mapped[str] = mapped_column(
         Enum("pending", "approved", "rejected", "merged", name="crawled_item_review_status"),
         default="pending",

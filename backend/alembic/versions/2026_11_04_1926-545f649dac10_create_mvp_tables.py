@@ -122,9 +122,7 @@ def upgrade() -> None:
         sa.CheckConstraint("end_date >= start_date", name="ck_fairs_period"),
         sa.CheckConstraint("price_onsite IS NULL OR price_onsite >= 0", name="ck_fairs_price_onsite"),
         sa.CheckConstraint("price_prereg IS NULL OR price_prereg >= 0", name="ck_fairs_price_prereg"),
-        sa.ForeignKeyConstraint(
-            ["category_id"], ["categories.id"], name=op.f("fk_fairs_category_id_categories")
-        ),
+        sa.ForeignKeyConstraint(["category_id"], ["categories.id"], name=op.f("fk_fairs_category_id_categories")),
         sa.ForeignKeyConstraint(["venue_id"], ["venues.id"], name=op.f("fk_fairs_venue_id_venues")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_fairs")),
     )
@@ -163,9 +161,7 @@ def upgrade() -> None:
         sa.Column("fair_id", sa.BigInteger(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(["fair_id"], ["fairs.id"], name=op.f("fk_bookmarks_fair_id_fairs")),
-        sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"], name=op.f("fk_bookmarks_user_id_users"), ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], name=op.f("fk_bookmarks_user_id_users"), ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("user_id", "fair_id", name=op.f("pk_bookmarks")),
     )
     op.create_index("ix_bookmarks_fair", "bookmarks", ["fair_id"], unique=False)
@@ -234,14 +230,10 @@ def upgrade() -> None:
         "fair_tags",
         sa.Column("fair_id", sa.BigInteger(), nullable=False),
         sa.Column("tag_id", sa.Integer(), nullable=False),
-        sa.Column(
-            "source", sa.Enum("admin", "vote", name="fair_tag_source"), server_default="admin", nullable=False
-        ),
+        sa.Column("source", sa.Enum("admin", "vote", name="fair_tag_source"), server_default="admin", nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(["fair_id"], ["fairs.id"], name=op.f("fk_fair_tags_fair_id_fairs")),
-        sa.ForeignKeyConstraint(
-            ["tag_id"], ["tags.id"], name=op.f("fk_fair_tags_tag_id_tags"), ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["tag_id"], ["tags.id"], name=op.f("fk_fair_tags_tag_id_tags"), ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("fair_id", "tag_id", name=op.f("pk_fair_tags")),
     )
     op.create_index("ix_fair_tags_tag", "fair_tags", ["tag_id"], unique=False)

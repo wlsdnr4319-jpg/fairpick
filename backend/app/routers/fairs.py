@@ -93,9 +93,7 @@ def add_bookmark(db: DbSession, user: CurrentUser, fair_id: FairId):
             db.commit()
         except IntegrityError:  # 같은 요청이 동시에 두 번 온 경우. PK 가 중복을 막는다
             db.rollback()
-    return BookmarkOut(
-        fair_id=fair_id, bookmarked=True, bookmark_count=fair_service.count_bookmarks(db, fair_id)
-    )
+    return BookmarkOut(fair_id=fair_id, bookmarked=True, bookmark_count=fair_service.count_bookmarks(db, fair_id))
 
 
 @router.delete("/{fair_id}/bookmark", response_model=BookmarkOut)
@@ -104,9 +102,7 @@ def remove_bookmark(db: DbSession, user: CurrentUser, fair_id: FairId):
     if row is not None:
         db.delete(row)
         db.commit()
-    return BookmarkOut(
-        fair_id=fair_id, bookmarked=False, bookmark_count=fair_service.count_bookmarks(db, fair_id)
-    )
+    return BookmarkOut(fair_id=fair_id, bookmarked=False, bookmark_count=fair_service.count_bookmarks(db, fair_id))
 
 
 def _published_or_404(db, fair_id: int) -> Fair:

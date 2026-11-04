@@ -35,11 +35,7 @@ def _test_database_url() -> str:
     url = os.environ.get("TEST_DATABASE_URL")
     if url:
         return url
-    return (
-        make_url(get_settings().database_url)
-        .set(database="fairpick_test")
-        .render_as_string(hide_password=False)
-    )
+    return make_url(get_settings().database_url).set(database="fairpick_test").render_as_string(hide_password=False)
 
 
 @pytest.fixture(scope="session")

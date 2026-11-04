@@ -94,10 +94,7 @@ def update(db: Session, fair_id: int, body: FairUpdate, now: datetime) -> Fair:
     for field, value in data.items():
         if field in _META:
             continue
-        if (
-            field in ("title", "venue_id", "start_date", "end_date", "public_access", "status")
-            and value is None
-        ):
+        if field in ("title", "venue_id", "start_date", "end_date", "public_access", "status") and value is None:
             raise AppError(422, "VALIDATION_ERROR", f"{field} 는 비울 수 없어요")
         setattr(fair, field, _normalize(field, value))
 
@@ -111,9 +108,7 @@ def update(db: Session, fair_id: int, body: FairUpdate, now: datetime) -> Fair:
     return fair
 
 
-def list_all(
-    db: Session, *, status: str | None, q: str | None, page: int, size: int
-) -> tuple[list[AdminFairRow], int]:
+def list_all(db: Session, *, status: str | None, q: str | None, page: int, size: int) -> tuple[list[AdminFairRow], int]:
     stmt = select(Fair)
     if status:
         stmt = stmt.where(Fair.status == status)

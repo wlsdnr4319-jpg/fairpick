@@ -14,8 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.models import Category, Fair, FairTag, Tag, Venue, VenueAlias
-from app.scripts.seed_data import CATEGORIES, FAIRS, TAGS, VENUES
+from app.models import Category, CrawlSource, Fair, FairTag, Tag, Venue, VenueAlias
+from app.scripts.seed_data import CATEGORIES, CRAWL_SOURCES, FAIRS, TAGS, VENUES
 
 # 박람회 30건을 조사·확인한 날 (verified=True 인 행사의 정보 확인일). 한국 시간 2026-11-04 14:00 = UTC 05:00
 RESEARCHED_AT_UTC = datetime(2026, 11, 4, 5, 0)
@@ -93,12 +93,27 @@ def seed_fairs(db: Session, categories, venues, tags) -> tuple[int, int]:
     return created, updated
 
 
+def seed_crawl_sources(db: Session, venues: dict[str, Venue]) -> int:
+    for row in CRAWL_SOURCES:
+        obj = db.scalar(select(CrawlSource).where(CrawlSource.parser_key == row["parser_key"]))
+        obj = obj or CrawlSource(parser_key=row["parser_key"])
+        obj.venue_id = venues[row["venue"]].id
+        obj.list_url = row["list_url"]
+        obj.policy_note = row["policy_note"]
+        obj.policy_checked_at = RESEARCHED_AT_UTC
+        db.add(obj)
+    db.flush()
+    return len(CRAWL_SOURCES)
+
+
 def run(db: Session) -> dict[str, int]:
     categories = seed_categories(db)
     tags = seed_tags(db)
     venues = seed_venues(db)
     created, updated = seed_fairs(db, categories, venues, tags)
+    sources = seed_crawl_sources(db, venues)
     return {
+        "crawl_sources": sources,
         "categories": len(categories),
         "tags": len(tags),
         "venues": len(venues),
