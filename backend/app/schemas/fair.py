@@ -63,6 +63,7 @@ class FairCard(BaseModel):
     prereg_end_at: datetime | None
     tags: list[TagOut]
     image_url: str | None
+    is_bookmarked: bool = False  # 로그인 사용자의 북마크 여부
 
 
 class FairDetail(BaseModel):
@@ -96,3 +97,21 @@ class Page[T](BaseModel):
     total: int
     page: int
     size: int
+
+
+class RefCategory(BaseModel):
+    code: str
+    name: str
+
+
+class RefTag(BaseModel):
+    slug: str
+    name: str
+    is_votable: bool
+
+
+class RefVenue(BaseModel):
+    id: int
+    name: str
+    region: str
+    address: str | None

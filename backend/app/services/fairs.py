@@ -1,11 +1,9 @@
 """
-박람회 조회 로직.
-
-2주차: 공개 박람회 목록(개막순·페이지네이션)과 상세.
-3주차: 필터(카테고리·태그·지역·기간·무료·일반인 관람), 검색, 정렬을 list_fairs 에 추가한다.
+박람회 조회 로직: 공개 박람회 목록(필터·검색·정렬·페이지네이션)과 상세.
+필터 조건은 fair_query.py 에 있다.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
@@ -22,32 +20,43 @@ from app.schemas.fair import (
     TagOut,
     VenueOut,
 )
+from app.services.fair_query import FairFilter, apply_filters, apply_sort
 
 # 카드마다 장소·카테고리·태그를 따로 조회하는 N+1 문제를 막는다 (레퍼런스 6장)
-_LOAD_RELATIONS = (
+LOAD_RELATIONS = (
     selectinload(Fair.category),
     selectinload(Fair.venue),
     selectinload(Fair.fair_tags).selectinload(FairTag.tag),
 )
 
 
-def list_fairs(db: Session, *, page: int, size: int) -> tuple[list[Fair], int]:
-    base = select(Fair).where(Fair.status == "published")
+def list_fairs(
+    db: Session, f: FairFilter, *, today: date, now_utc: datetime, page: int, size: int
+) -> tuple[list[Fair], int]:
+    base = apply_filters(select(Fair), f, today, now_utc)
 
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     fairs = db.scalars(
-        base.options(*_LOAD_RELATIONS)
-        .order_by(Fair.start_date, Fair.id)
-        .offset((page - 1) * size)
-        .limit(size)
+        apply_sort(base, f).options(*LOAD_RELATIONS).offset((page - 1) * size).limit(size)
     ).all()
     return list(fairs), total
+
+
+def bookmarked_ids(db: Session, user_id: int | None, fair_ids: list[int]) -> set[int]:
+    """로그인 사용자가 북마크한 박람회 id. 비로그인이면 빈 집합."""
+    if user_id is None or not fair_ids:
+        return set()
+    return set(
+        db.scalars(
+            select(Bookmark.fair_id).where(Bookmark.user_id == user_id, Bookmark.fair_id.in_(fair_ids))
+        )
+    )
 
 
 def get_published_fair(db: Session, fair_id: int) -> Fair | None:
     """비공개(draft, hidden) 박람회는 없는 것과 똑같이 취급한다 (FAIR_NOT_FOUND)."""
     return db.scalar(
-        select(Fair).where(Fair.id == fair_id, Fair.status == "published").options(*_LOAD_RELATIONS)
+        select(Fair).where(Fair.id == fair_id, Fair.status == "published").options(*LOAD_RELATIONS)
     )
 
 
@@ -69,7 +78,7 @@ def _venue(fair: Fair) -> VenueOut:
     return VenueOut(id=fair.venue.id, name=fair.venue.name, region=fair.venue.region, hall=fair.hall)
 
 
-def to_card(fair: Fair, today: date) -> FairCard:
+def to_card(fair: Fair, today: date, *, is_bookmarked: bool = False) -> FairCard:
     return FairCard(
         id=fair.id,
         title=fair.title,
@@ -84,6 +93,7 @@ def to_card(fair: Fair, today: date) -> FairCard:
         prereg_end_at=to_local(fair.prereg_end_at),
         tags=_tags(fair),
         image_url=fair.image_url,
+        is_bookmarked=is_bookmarked,
     )
 
 
