@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
-from app.routers import admin, admin_crawl, auth, fairs, health, me, refs
+from app.routers import admin, admin_crawl, auth, engagement, fairs, health, me, refs
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 request_logger = logging.getLogger("app.request")
@@ -61,7 +61,8 @@ def create_app() -> FastAPI:
         return response
 
     app.include_router(health.router, prefix=API_PREFIX)
-    for module in (auth, me, fairs, refs, admin, admin_crawl):
+    # engagement 는 /fairs/calendar 가 /fairs/{fair_id} 보다 먼저 잡히도록 fairs 보다 앞에 둔다
+    for module in (auth, me, engagement, fairs, refs, admin, admin_crawl):
         app.include_router(module.router, prefix=API_PREFIX)
 
     return app

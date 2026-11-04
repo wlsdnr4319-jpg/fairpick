@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body %}
+<h1 style="font-size:18px;margin:0 0 12px">수집이 연속으로 실패했어요: {{ source }}</h1>
+<p style="margin:0 0 8px">최근 {{ count }}번 연속 실패했습니다. 사이트 구조가 바뀌었거나 차단됐을 수 있어요.</p>
+<p style="margin:0 0 16px;color:#b91c1c;font-family:monospace;font-size:13px">{{ error }}</p>
+<p style="margin:0"><a href="{{ base_url }}/admin/crawl-runs" style="color:#4f46e5">수집 이력 보기</a> · 그동안 박람회는 관리자 화면에서 직접 입력할 수 있어요.</p>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body %}
+<h1 style="font-size:18px;margin:0 0 12px">{{ headline }}</h1>
+<p style="margin:0 0 4px;font-weight:bold">{{ fair_title }}</p>
+<p style="margin:0 0 16px;color:#555">{{ period }} · {{ venue }}</p>
+{% if detail %}<p style="margin:0 0 16px;color:#333">{{ detail }}</p>{% endif %}
+{% if prereg_url %}
+<p style="margin:0 0 8px"><a href="{{ prereg_url }}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px">사전등록하러 가기</a></p>
+{% endif %}
+<p style="margin:0"><a href="{{ fair_url }}" style="color:#4f46e5">페어픽에서 자세히 보기</a></p>
+{% endblock %}

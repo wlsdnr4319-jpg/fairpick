@@ -14,9 +14,10 @@ from sqlalchemy import func, select
 from app.core.deps import CurrentUser, DbSession, Today
 from app.models import Bookmark, Fair
 from app.routers.auth import clear_refresh_cookie
-from app.schemas.auth import UserOut
+from app.schemas.auth import NotificationSettingsIO, UserOut
 from app.schemas.fair import FairCard, Page
 from app.services import fairs as fair_service
+from app.services.notifications import ensure_settings
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -61,3 +62,19 @@ def my_bookmarks(
         page=page,
         size=size,
     )
+
+
+@router.get("/notification-settings", response_model=NotificationSettingsIO)
+def get_notification_settings(user: CurrentUser, db: DbSession):
+    s = ensure_settings(db, user.id)
+    db.commit()
+    return s
+
+
+@router.put("/notification-settings", response_model=NotificationSettingsIO)
+def put_notification_settings(user: CurrentUser, db: DbSession, body: NotificationSettingsIO):
+    s = ensure_settings(db, user.id)
+    for k, v in body.model_dump().items():
+        setattr(s, k, v)
+    db.commit()
+    return s

@@ -1,0 +1,16 @@
+[페어픽] {{ headline }}
+
+{{ fair_title }}
+{{ period }} · {{ venue }}
+{% if detail %}
+{{ detail }}
+{% endif %}
+{% if prereg_url %}
+사전등록: {{ prereg_url }}
+{% endif %}
+자세히 보기: {{ fair_url }}
+
+---
+일정과 입장 조건은 주최 측 공식 사이트에서 최종 확인하세요.
+알림 설정: {{ settings_url }}
+알림 메일 수신 거부: {{ unsubscribe_url }}

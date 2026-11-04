@@ -102,3 +102,38 @@ def revoke_all(db: Session, user_id: int, now: datetime) -> None:
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=now)
     )
+
+
+# ---------------------------------------------------------------------------
+# 비밀번호 재설정 (레퍼런스 10장): 토큰은 30분 유효, 1회용, 해시로 저장한다
+# ---------------------------------------------------------------------------
+
+RESET_TTL = timedelta(minutes=30)
+
+
+def request_password_reset(db: Session, email: str, now: datetime) -> tuple[User, str] | None:
+    """가입된 이메일이면 (사용자, 토큰), 아니면 None. 호출한 쪽은 두 경우 모두 같은 응답을 준다."""
+    from app.models import PasswordResetToken
+
+    user = db.scalar(select(User).where(User.email == _normalize_email(email)))
+    if user is None:
+        return None
+    token = new_refresh_token()
+    db.add(
+        PasswordResetToken(user_id=user.id, token_hash=hash_token(token), expires_at=now + RESET_TTL, created_at=now)
+    )
+    db.flush()
+    return user, token
+
+
+def confirm_password_reset(db: Session, token: str, new_password: str, now: datetime) -> User:
+    from app.models import PasswordResetToken
+
+    row = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(token)))
+    if row is None or row.used_at is not None or row.expires_at <= now:
+        raise AppError(400, "INVALID_RESET_TOKEN", "링크가 만료됐거나 이미 사용했어요. 다시 요청해 주세요")
+    user = db.get(User, row.user_id)
+    user.password_hash = hash_password(new_password)
+    row.used_at = now
+    revoke_all(db, user.id, now)  # 다른 기기의 로그인도 끊는다
+    return user

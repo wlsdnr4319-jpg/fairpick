@@ -83,9 +83,26 @@ def create(db: Session, body: FairCreate, now: datetime) -> Fair:
     return fair
 
 
-def update(db: Session, fair_id: int, body: FairUpdate, now: datetime) -> Fair:
+_LOGGED_FIELDS = (
+    "title",
+    "start_date",
+    "end_date",
+    "venue_id",
+    "hall",
+    "public_access",
+    "price_onsite",
+    "price_prereg",
+    "prereg_start_at",
+    "prereg_end_at",
+    "prereg_url",
+    "status",
+)
+
+
+def update(db: Session, fair_id: int, body: FairUpdate, now: datetime, actor_id: int | None = None) -> Fair:
     fair = _load(db, fair_id)
     data = body.model_dump(exclude_unset=True)
+    before = {f: getattr(fair, f) for f in _LOGGED_FIELDS}
 
     if "category" in data:
         fair.category_id = _category_id(db, data["category"])
@@ -104,6 +121,10 @@ def update(db: Session, fair_id: int, body: FairUpdate, now: datetime) -> Fair:
         _set_tags(db, fair, data["tags"])
     if data.get("verified"):
         fair.verified_at = now
+    # 변경 이력: 북마크한 사람에게 '정보 변경' 알림을 보낼 때 쓴다 (레퍼런스 9장)
+    from app.services.notifications import log_changes
+
+    log_changes(db, fair, before, actor_id)
     db.flush()
     return fair
 

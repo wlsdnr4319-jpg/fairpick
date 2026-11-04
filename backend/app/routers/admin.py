@@ -47,7 +47,7 @@ def create_fair(_: CurrentAdmin, db: DbSession, now: Now, body: FairCreate):
 
 
 @router.patch("/fairs/{fair_id}", response_model=AdminFair)
-def update_fair(_: CurrentAdmin, db: DbSession, now: Now, fair_id: Annotated[int, Path(ge=1)], body: FairUpdate):
-    admin_fairs.update(db, fair_id, body, now)
+def update_fair(admin: CurrentAdmin, db: DbSession, now: Now, fair_id: Annotated[int, Path(ge=1)], body: FairUpdate):
+    admin_fairs.update(db, fair_id, body, now, actor_id=admin.id)
     db.commit()
     return admin_fairs.to_admin(db, fair_id)

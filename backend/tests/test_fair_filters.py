@@ -125,9 +125,9 @@ def test_free_and_public_only(data, client):
     assert titles(client, "public_only=true") == ["부산 아트페어", "커피 위크엔드"]
 
 
-def test_keyword_search_title_and_summary(data, client):
-    assert titles(client, "q=와인") == ["와인 페스티벌"]
-    assert titles(client, "q=시음") == ["커피 위크엔드"]  # 소개글 검색
+def test_single_char_keyword_uses_like(data, client):
+    # 한 글자 검색어는 ngram 토큰(2글자)보다 짧아 LIKE 로 찾는다. 전문 검색은 test_search.py
+    assert titles(client, "q=와") == ["와인 페스티벌"]
     assert titles(client, "q=%25") == []  # LIKE 와일드카드는 글자 그대로 찾는다
 
 

@@ -19,6 +19,7 @@ email-validator==2.3.0  # 회원가입 이메일 형식 검사 (Pydantic EmailSt
 httpx==0.28.1
 beautifulsoup4==4.15.0   # 수집 HTML 파싱 (6주차)
 APScheduler==3.11.3      # 워커 스케줄러 (7주차). 3.x 기준
+Jinja2==3.1.6            # 알림 메일 템플릿 (9주차)
 httpx2==2.16.0          # FastAPI TestClient 용 (starlette 가 httpx2 를 권장)
 pytest==9.2.0
 ruff==0.17.3

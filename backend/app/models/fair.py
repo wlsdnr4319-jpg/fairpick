@@ -47,6 +47,8 @@ class Fair(TimestampMixin, Base):
         Index("ix_fairs_status_end", "status", "end_date"),
         Index("ix_fairs_category_start", "category_id", "start_date"),
         Index("ix_fairs_prereg_end", "prereg_end_at"),
+        # 한글 키워드 검색 (ngram 전문 검색). 마이그레이션 bcac9a1c9e75
+        Index("ft_fairs", "title", "summary", mysql_prefix="FULLTEXT", mysql_with_parser="ngram"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

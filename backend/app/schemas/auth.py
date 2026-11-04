@@ -47,6 +47,32 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
+class PasswordResetRequestIn(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmIn(BaseModel):
+    token: str = Field(min_length=10, max_length=200)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class NotificationSettingsIO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    email_enabled: bool
+    prereg_deadline: bool
+    opening_soon: bool
+    fair_updated: bool
+
+
+class UnsubscribeIn(BaseModel):
+    token: str = Field(min_length=10, max_length=64)
+
+
+class MessageOut(BaseModel):
+    message: str
+
+
 class BookmarkOut(BaseModel):
     fair_id: int
     bookmarked: bool

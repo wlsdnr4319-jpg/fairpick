@@ -105,6 +105,7 @@ class RefCategory(BaseModel):
 
 
 class RefTag(BaseModel):
+    id: int
     slug: str
     name: str
     is_votable: bool

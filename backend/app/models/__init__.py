@@ -3,6 +3,15 @@
 from app.models.bookmark import Bookmark
 from app.models.category import Category
 from app.models.crawl import CrawledItem, CrawlRun, CrawlSource
+from app.models.engagement import (
+    FairChangeLog,
+    Notification,
+    NotificationSetting,
+    PasswordResetToken,
+    TagVote,
+    Visit,
+    VisitLike,
+)
 from app.models.fair import Fair
 from app.models.tag import FairTag, Tag
 from app.models.user import RefreshToken, User
@@ -15,6 +24,13 @@ __all__ = [
     "CrawlSource",
     "CrawledItem",
     "Fair",
+    "FairChangeLog",
+    "Notification",
+    "NotificationSetting",
+    "PasswordResetToken",
+    "TagVote",
+    "Visit",
+    "VisitLike",
     "FairTag",
     "RefreshToken",
     "Tag",

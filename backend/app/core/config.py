@@ -30,6 +30,16 @@ class Settings(BaseSettings):
     # 수집 요청 식별 (레퍼런스 8장: User-Agent 에 서비스 이름과 연락 이메일)
     crawl_user_agent: str = "FairPickBot/1.0 (+contact@example.com)"
 
+    # 메일 (2단계 알림). SMTP_HOST 가 비어 있으면 실제로 보내지 않고 로그로만 남긴다 (개발용)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_starttls: bool = True
+    mail_from: str = "페어픽 <no-reply@example.com>"
+    # 메일 속 링크의 기준 주소 (프론트 주소)
+    app_base_url: str = "http://localhost:5173"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

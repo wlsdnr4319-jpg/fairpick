@@ -5,11 +5,12 @@ GET /fairs 의 필터·검색·정렬 조건 (레퍼런스 7장 'GET /fairs 쿼�
 """
 
 import calendar
+import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Literal
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, func, or_, select, text
 
 from app.core.errors import AppError
 from app.models import Bookmark, Category, Fair, FairTag, Tag, Venue
@@ -66,13 +67,35 @@ def _escape_like(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+# BOOLEAN MODE 에서 연산자로 쓰이는 글자는 검색어에서 뺀다
+_FT_SPECIAL = re.compile(r'[+\-<>()~*"@]')
+
+
+def _keyword(stmt: Select, q: str) -> Select:
+    """
+    제목·소개 키워드 검색.
+    - 두 글자 이상 단어는 ngram FULLTEXT(MATCH ... AGAINST)로 찾는다. 단어마다 필수(+)로 묶는다.
+    - ngram 토큰이 두 글자라 한 글자 검색어는 LIKE 로 찾는다.
+    모든 값은 바인딩 파라미터로 넘긴다 (레퍼런스 10장).
+    """
+    words = [w for w in _FT_SPECIAL.sub(" ", q).split() if w]
+    long_words = [w for w in words if len(w) >= 2]
+    if long_words:
+        boolean_query = " ".join(f'+"{w}"' for w in long_words)
+        stmt = stmt.where(
+            text("MATCH(fairs.title, fairs.summary) AGAINST(:ftq IN BOOLEAN MODE)").bindparams(ftq=boolean_query)
+        )
+    for w in [w for w in words if len(w) < 2] or ([] if long_words else [q.strip()]):
+        pattern = f"%{_escape_like(w)}%"
+        stmt = stmt.where(or_(Fair.title.like(pattern, escape="\\"), Fair.summary.like(pattern, escape="\\")))
+    return stmt
+
+
 def apply_filters(stmt: Select, f: FairFilter, today: date, now_utc: datetime) -> Select:
     stmt = stmt.where(Fair.status == "published")
 
     if f.q:
-        # 1단계는 LIKE (바인딩 파라미터로 실행). 11주차에 ngram FULLTEXT 로 교체한다.
-        pattern = f"%{_escape_like(f.q.strip())}%"
-        stmt = stmt.where(or_(Fair.title.like(pattern, escape="\\"), Fair.summary.like(pattern, escape="\\")))
+        stmt = _keyword(stmt, f.q)
 
     if f.category:
         stmt = stmt.where(Fair.category_id.in_(select(Category.id).where(Category.code == f.category)))

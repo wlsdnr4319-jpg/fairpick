@@ -121,6 +121,8 @@ def run_source(
         logger.exception("crawl failed: %s", source.parser_key)
     run.finished_at = utcnow()
     db.commit()
+    if run.status == "failed":
+        alert_if_repeated_failures(db, source)
     return run
 
 
@@ -150,3 +152,38 @@ def merge_candidates(db: Session, item: CrawledItem, limit: int = 3) -> list[tup
         stmt = stmt.where(Fair.venue_id == item.parsed_venue_id)
     scored = [(f, _similar(item.raw_title, f.title)) for f in db.scalars(stmt)]
     return sorted([x for x in scored if x[1] >= 0.4], key=lambda x: -x[1])[:limit]
+
+
+# ---------------------------------------------------------------------------
+# 수집 모니터링 (F-18): 연속 실패 시 관리자 메일
+# ---------------------------------------------------------------------------
+
+ALERT_AFTER = 2  # 연속 실패 횟수
+
+
+def alert_if_repeated_failures(db: Session, source: CrawlSource) -> bool:
+    recent = db.scalars(
+        select(CrawlRun)
+        .where(CrawlRun.source_id == source.id)
+        .order_by(CrawlRun.started_at.desc(), CrawlRun.id.desc())
+        .limit(ALERT_AFTER)
+    ).all()
+    if len(recent) < ALERT_AFTER or any(r.status != "failed" for r in recent):
+        return False
+    from app.models import User
+    from app.services import mail
+
+    admins = db.scalars(select(User).where(User.role == "admin")).all()
+    for admin in admins:
+        try:
+            mail.send(
+                mail.Mail(
+                    to=admin.email,
+                    subject=f"[페어픽 관리자] 수집 연속 실패: {source.parser_key}",
+                    template="crawl_alert",
+                    context={"source": source.parser_key, "count": ALERT_AFTER, "error": recent[0].error_message or ""},
+                )
+            )
+        except Exception:
+            logger.exception("crawl alert mail failed")
+    return bool(admins)

@@ -27,5 +27,14 @@ services:
       interval: 10s
       retries: 10
 
+  # 개발용 메일 확인 도구. 실제로 보내지 않고 http://localhost:8025 에서 본다
+  #   docker compose --profile mail up -d mailpit
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["mail"]
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   db_data:

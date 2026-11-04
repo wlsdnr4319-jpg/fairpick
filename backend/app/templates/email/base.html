@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<body style="margin:0;padding:24px;background:#f5f5f7;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#111">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:24px">
+    <p style="margin:0 0 16px;font-weight:bold;color:#4f46e5">페어픽</p>
+    {% block body %}{% endblock %}
+    <hr style="border:none;border-top:1px solid #eee;margin:24px 0 12px">
+    <p style="font-size:12px;color:#888;line-height:1.6">
+      일정과 입장 조건은 주최 측 공식 사이트에서 최종 확인하세요.<br>
+      {% if settings_url %}<a href="{{ settings_url }}" style="color:#888">알림 설정</a>{% endif %}
+      {% if unsubscribe_url %} · <a href="{{ unsubscribe_url }}" style="color:#888">알림 메일 수신 거부</a>{% endif %}
+    </p>
+  </div>
+</body>
+</html>
