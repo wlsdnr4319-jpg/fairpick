@@ -2,6 +2,7 @@
 fastapi==0.162.0
 uvicorn[standard]==0.54.0
 pydantic-settings==2.16.2
+tzdata==2026.6         # Windows 에는 IANA 시간대 DB 가 없어 zoneinfo("Asia/Seoul") 가 실패한다
 
 # DB
 SQLAlchemy==2.1.8
