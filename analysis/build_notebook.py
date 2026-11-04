@@ -111,9 +111,84 @@ print(f"입장료 정보가 있는 {len(known)}개 기준: 무료 {known['free']
 print("입장료를 모르는 박람회가 많을수록 이 비율은 낮게 나온다. 검수 때 입장료를 채우면 정확해진다.")"""
     ),
     nbformat.v4.new_markdown_cell(
+        "## 5. 지난 7년의 흐름 (지난 행사 기록)\n\n"
+        "`fair_archive` 는 전시장 공식 사이트의 지난 일정을 모은 분석 전용 테이블이다 "
+        "(`python -m app.scripts.backfill_archive --from 2019 --to 2025`). 개막일 기준, 학회·회의는 뺐다."
+    ),
+    nbformat.v4.new_code_cell(
+        """arc = pd.read_sql(
+    "SELECT a.title, a.start_date, a.theme, v.name AS venue, v.id AS venue_id "
+    "FROM fair_archive a JOIN venues v ON v.id = a.venue_id "
+    "WHERE YEAR(a.start_date) BETWEEN 2019 AND 2025",
+    engine,
+    parse_dates=["start_date"],
+)
+arc["year"] = arc["start_date"].dt.year
+arc["month_no"] = arc["start_date"].dt.month
+arc["theme"] = arc["theme"].str.replace("·", "ㆍ")
+print(f"지난 행사 {len(arc)}건, 전시장 {arc['venue'].nunique()}곳")
+
+# 전시장 색은 서비스 통계 화면과 같다 (전시장 id 순서로 고정)
+venue_order = arc.drop_duplicates("venue").sort_values("venue_id")["venue"].tolist()
+VENUE_COLORS = dict(zip(venue_order, ["#2a78d6", "#eb6834", "#1baf7a"]))
+yearly = arc.pivot_table(index="year", columns="venue", values="title", aggfunc="count", fill_value=0)
+yearly = yearly.reindex(range(2019, 2026), fill_value=0)[venue_order]
+
+fig, ax = plt.subplots(figsize=(9, 3.5))
+bottom = pd.Series(0, index=yearly.index)
+for venue in venue_order:
+    ax.bar(yearly.index, yearly[venue], bottom=bottom, color=VENUE_COLORS[venue], label=venue,
+           edgecolor="white", linewidth=2, width=0.6)
+    bottom += yearly[venue]
+for x, total in bottom.items():
+    ax.text(x, total + 3, f"{total}", ha="center", fontsize=9, color="#52514e")
+ax.set_title("연도별 개최 수", loc="left")
+ax.set_ylim(0, bottom.max() * 1.12)  # 막대 위 합계 숫자 자리
+# 범례는 그래프 밖 오른쪽 위에 둬서 막대·숫자를 가리지 않는다
+ax.legend(frameon=False, ncols=len(venue_order), loc="lower right", bbox_to_anchor=(1, 1))
+ax.grid(axis="y", color="#e1e0d9")
+ax.set_axisbelow(True)
+plt.show()
+yearly.assign(합계=yearly.sum(axis=1))"""
+    ),
+    nbformat.v4.new_markdown_cell(
+        "## 6. 주제별로 언제 많이 열리나\n\n제목 키워드로 주제를 나눴다 (`backend/app/services/archive.py`). 7년 합계."
+    ),
+    nbformat.v4.new_code_cell(
+        """from matplotlib.colors import ListedColormap
+
+themed = arc[arc["theme"] != "기타"]
+heat = themed.pivot_table(index="theme", columns="month_no", values="title", aggfunc="count", fill_value=0)
+heat = heat.reindex(columns=range(1, 13), fill_value=0)
+heat = heat.loc[heat.sum(axis=1).sort_values(ascending=False).index]
+# 파랑 한 가지 계열 (서비스 통계 화면과 같은 단계)
+cmap = ListedColormap(["#f5f5f3", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"])
+
+# 0건은 회색, 나머지는 최댓값 대비 7단계 (서비스 통계 화면과 같은 계산)
+vmax = heat.values.max()
+level = heat.apply(lambda col: col.map(lambda n: 0 if n == 0 else 1 + min(6, int(n / vmax * 7))))
+fig, ax = plt.subplots(figsize=(10, 4))
+ax.imshow(level.values, cmap=cmap, vmin=0, vmax=7, aspect="auto")
+ax.set_xticks(range(12), [f"{m}월" for m in range(1, 13)])
+ax.set_yticks(range(len(heat)), heat.index)
+for (i, j), n in pd.DataFrame(heat.values).stack().items():
+    ax.text(j, i, n if n else "·", ha="center", va="center", fontsize=8,
+            color="white" if level.values[i, j] >= 5 else "#1f1f1d")
+for side in ("left", "bottom"):
+    ax.spines[side].set_visible(False)
+ax.tick_params(length=0)
+ax.set_title(f"주제 × 개막 월 (2019~2025 합계, 기타 {len(arc) - len(themed)}건 제외)")
+plt.show()
+
+peaks = heat.apply(lambda r: "·".join(f"{m}월" for m in r.index[r == r.max()]), axis=1)
+pd.DataFrame({"합계": heat.sum(axis=1), "가장 많은 달": peaks})"""
+    ),
+    nbformat.v4.new_markdown_cell(
         "## 정리\n\n"
         "- 데이터는 수집 워커가 매일 쌓는다. 1단계를 일찍 배포할수록 분석할 거리가 많아진다.\n"
-        "- 지난 행사 목록을 한 번 수집해 `status='hidden'` 으로 넣으면, 서비스에는 안 보이고 계절별 추이 분석에만 쓸 수 있다."
+        "- 지난 행사는 서비스 목록과 섞지 않고 `fair_archive` 에 따로 모아 추이 분석에만 쓴다. "
+        "카테고리·입장료가 없어 제목 키워드로 주제를 나눴다.\n"
+        "- 연도별 막대에서 2020~2021년(코로나19) 감소와 회복을, 주제 × 월 표에서 박람회 성수기를 볼 수 있다."
     ),
 ]
 

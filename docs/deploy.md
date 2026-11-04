@@ -49,6 +49,7 @@ vi .env
 sh deploy/deploy.sh                                  # 빌드 → 마이그레이션 → 실행 → 헬스 체크
 docker compose -f docker-compose.prod.yml run --rm api python -m app.scripts.seed          # 시드 (처음 한 번)
 docker compose -f docker-compose.prod.yml run --rm api python -m app.scripts.create_admin --email 내이메일
+docker compose -f docker-compose.prod.yml run --rm api python -m app.scripts.backfill_archive --from 2019 --to 2025  # 지난 행사 (선택, 약 15분). 통계 화면의 7년 추이
 ```
 
 ## 3. HTTPS (Let's Encrypt)

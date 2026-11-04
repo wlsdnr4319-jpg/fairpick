@@ -17,6 +17,10 @@ const CATEGORY_COLOR = {
 }
 const INK = { muted: '#898781', grid: '#e1e0d9', axis: '#c3c2b7' }
 const SINGLE = '#2a78d6'
+// 전시장 색: 같은 검증 팔레트의 1~3번을 고정 순서로 (서버가 전시장 id 순서로 준다)
+const VENUE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a']
+// 히트맵: 파랑 한 가지 계열, 연한 색 = 적음 (팔레트 sequential 100~700)
+const HEAT = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b']
 
 const get = (url, params) => api.get(url, { params }).then((r) => r.data)
 
@@ -26,6 +30,7 @@ export default function Report() {
   const monthly = useQuery({ queryKey: ['stats', 'monthly', year], queryFn: () => get('/stats/monthly', { year }) })
   const categories = useQuery({ queryKey: ['stats', 'categories'], queryFn: () => get('/stats/categories') })
   const venues = useQuery({ queryKey: ['stats', 'venues'], queryFn: () => get('/stats/venues') })
+  const history = useQuery({ queryKey: ['stats', 'history'], queryFn: () => get('/stats/history') })
 
   return (
     <div className="space-y-10">
@@ -45,6 +50,7 @@ export default function Report() {
       <MonthlySection year={year} setYear={setYear} rows={monthly.data} categories={categories.data ?? []} />
       <CategorySection rows={categories.data} />
       <VenueSection rows={venues.data} />
+      <HistorySection data={history.data} />
     </div>
   )
 }
@@ -194,6 +200,145 @@ function VenueSection({ rows }) {
   return (
     <Section title="전시장별 개최 수" lead={`${rows[0].venue}에서 가장 많이 열려요. 가장 많은 카테고리: ${rows[0].top_category}`}>
       <HBar data={rows} dataKey="count" nameKey="venue" height={rows.length * 36} />
+    </Section>
+  )
+}
+
+// 받침이 있으면 '은', 없으면 '는' (웨딩은, 식음료는)
+function topicParticle(word) {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  return code >= 0 && code < 11172 && code % 28 !== 0 ? '은' : '는'
+}
+
+// 지난 행사 기록 (fair_archive): 연도별 흐름과 주제별로 많이 열리는 달
+function HistorySection({ data }) {
+  if (!data || data.total === 0) return null
+  return (
+    <div className="space-y-10 border-t pt-8">
+      <header className="space-y-1">
+        <h2 className="text-xl font-bold">
+          지난 {data.to_year - data.from_year + 1}년의 박람회 ({data.from_year}~{data.to_year})
+        </h2>
+        <p className="text-sm text-gray-500">
+          {data.venues.join('·')} 공식 일정 {data.total.toLocaleString()}건을 모았어요. 개막일 기준이고, 학회·회의는 뺐어요.
+        </p>
+      </header>
+      <YearlySection data={data} />
+      <ThemeMonthSection data={data} />
+    </div>
+  )
+}
+
+function YearlySection({ data }) {
+  const [asTable, setAsTable] = useState(false)
+  const rows = data.by_year.map((y) => ({ year: `${y.year}`, total: y.total, ...y.by_venue }))
+  const counted = data.by_year.filter((y) => y.total > 0)
+  const low = counted.reduce((a, b) => (b.total < a.total ? b : a), counted[0])
+  const high = counted.reduce((a, b) => (b.total > a.total ? b : a), counted[0])
+  return (
+    <Section
+      title="연도별 개최 수"
+      lead={`가장 적은 해는 ${low.year}년(${low.total}개), 가장 많은 해는 ${high.year}년(${high.total}개)이에요`}
+      action={
+        <button type="button" className="min-h-11 rounded-lg border px-3 text-sm" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
+          {asTable ? '차트로 보기' : '표로 보기'}
+        </button>
+      }
+    >
+      {asTable ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-right text-sm">
+            <thead className="border-b text-gray-500">
+              <tr>
+                <th className="py-2 text-left">연도</th>
+                {data.venues.map((v) => <th key={v}>{v}</th>)}
+                <th>합계</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.year} className="border-b">
+                  <td className="py-1.5 text-left">{r.year}</td>
+                  {data.venues.map((v) => <td key={v}>{r[v]}</td>)}
+                  <td className="font-semibold">{r.total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={INK.grid} />
+              <XAxis dataKey="year" {...axisProps} />
+              <YAxis allowDecimals={false} {...axisProps} axisLine={false} />
+              <Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} formatter={(v, name) => [`${v}개`, name]} />
+              <Legend iconType="square" wrapperStyle={{ fontSize: 12, color: '#52514e' }} />
+              {data.venues.map((v, i) => (
+                <Bar key={v} dataKey={v} name={v} stackId="y" fill={VENUE_COLORS[i % VENUE_COLORS.length]} stroke="#fff" strokeWidth={2} maxBarSize={44} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </Section>
+  )
+}
+
+function ThemeMonthSection({ data }) {
+  const themes = data.themes.filter((t) => t.total > 0)
+  const max = Math.max(1, ...themes.flatMap((t) => t.by_month))
+  const years = data.to_year - data.from_year + 1
+  const busiest = [...themes].sort((a, b) => b.total - a.total).slice(0, 3)
+  const months = (list) => list.map((m) => `${m}월`).join('·')
+  return (
+    <Section
+      title="주제별로 많이 열리는 달"
+      lead={busiest.map((t) => `${t.theme}${topicParticle(t.theme)} ${months(t.peak_months)}`).join(', ') + '에 가장 많이 열렸어요'}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-separate border-spacing-0.5 text-center text-xs">
+          <caption className="sr-only">주제와 달별 개최 수 ({years}년 합계, 개막일 기준)</caption>
+          <thead className="text-gray-500">
+            <tr>
+              <th className="py-1 text-left font-normal">주제</th>
+              {Array.from({ length: 12 }, (_, i) => <th key={i} className="font-normal">{i + 1}월</th>)}
+              <th className="pl-2 text-right font-normal">합계</th>
+            </tr>
+          </thead>
+          <tbody>
+            {themes.map((t) => (
+              <tr key={t.theme}>
+                <th scope="row" className="whitespace-nowrap py-1 pr-2 text-left font-medium text-gray-700">{t.theme}</th>
+                {t.by_month.map((n, i) => {
+                  const step = n === 0 ? -1 : Math.min(HEAT.length - 1, Math.floor((n / max) * HEAT.length))
+                  return (
+                    <td
+                      key={i}
+                      title={`${t.theme} · ${i + 1}월: ${n}개 (${years}년 합계)`}
+                      className="h-9 rounded"
+                      style={{
+                        background: step < 0 ? '#f5f5f3' : HEAT[step],
+                        color: step >= 4 ? '#fff' : step < 0 ? '#b5b4ad' : '#1f1f1d',
+                      }}
+                    >
+                      {n || '·'}
+                    </td>
+                  )
+                })}
+                <td className="pl-2 text-right font-semibold text-gray-700">{t.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-gray-500" aria-hidden="true">
+        <span>적음</span>
+        {HEAT.map((c) => <span key={c} className="h-3 w-6 rounded-sm" style={{ background: c }} />)}
+        <span>많음</span>
+        <span className="ml-auto">제목 키워드로 나눴고, 어느 주제에도 안 맞는 {data.other_total.toLocaleString()}건은 뺐어요</span>
+      </div>
     </Section>
   )
 }

@@ -7,6 +7,7 @@ robots.txt (2026-11-04 확인): Googlebot 의 /search/search.do, /bbs/ 만 금�
 """
 
 import re
+from datetime import date
 
 from bs4 import BeautifulSoup
 
@@ -26,9 +27,16 @@ class SetecParser(BaseParser):
     monthly = False
 
     def fetch_list(self, year: int, month: int) -> list[RawFair]:
+        return self._pages({})
+
+    def fetch_period(self, start: date, end: date) -> list[RawFair]:
+        """지난 행사 기록용 (scripts/backfill_archive.py). 개최기간 검색: searchSDate, searchEDate (YYYY-MM-DD)."""
+        return self._pages({"searchSDate": start.isoformat(), "searchEDate": end.isoformat()})
+
+    def _pages(self, params: dict) -> list[RawFair]:
         items: dict[str, RawFair] = {}
         for page in range(1, MAX_PAGES + 1):
-            found = self.parse_list(self.client.get(LIST_URL, params={"pageIndex": page}))
+            found = self.parse_list(self.client.get(LIST_URL, params={**params, "pageIndex": page}))
             new = [f for f in found if f.external_id not in items]
             if not new:
                 break
