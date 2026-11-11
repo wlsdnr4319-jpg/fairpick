@@ -152,12 +152,16 @@ plt.show()
 yearly.assign(합계=yearly.sum(axis=1))"""
     ),
     nbformat.v4.new_markdown_cell(
-        "## 6. 주제별로 언제 많이 열리나\n\n제목 키워드로 주제를 나눴다 (`backend/app/services/archive.py`). 7년 합계."
+        "## 6. 주제별로 언제 많이 열리나\n\n"
+        "제목 키워드로 주제를 나눴다 (`backend/app/services/archive.py`). 7년 합계.\n"
+        "전시장 일정표에 섞인 입주박람회(새 아파트 입주민 행사)와 박람회가 아닌 행사(선거 개표, 공연, 면세점 행사 등), "
+        "주제를 못 찾은 '기타'는 뺀다. B2B 전시회·학술대회는 '산업ㆍ학술' 한 줄로 모았다."
     ),
     nbformat.v4.new_code_cell(
         """from matplotlib.colors import ListedColormap
 
-themed = arc[arc["theme"] != "기타"]
+left_out = arc["theme"].isin(["기타", "입주박람회", "박람회 아님"])
+themed = arc[~left_out]
 heat = themed.pivot_table(index="theme", columns="month_no", values="title", aggfunc="count", fill_value=0)
 heat = heat.reindex(columns=range(1, 13), fill_value=0)
 heat = heat.loc[heat.sum(axis=1).sort_values(ascending=False).index]
@@ -167,7 +171,7 @@ cmap = ListedColormap(["#f5f5f3", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#
 # 0건은 회색, 나머지는 최댓값 대비 7단계 (서비스 통계 화면과 같은 계산)
 vmax = heat.values.max()
 level = heat.apply(lambda col: col.map(lambda n: 0 if n == 0 else 1 + min(6, int(n / vmax * 7))))
-fig, ax = plt.subplots(figsize=(10, 4))
+fig, ax = plt.subplots(figsize=(10, 6))
 ax.imshow(level.values, cmap=cmap, vmin=0, vmax=7, aspect="auto")
 ax.set_xticks(range(12), [f"{m}월" for m in range(1, 13)])
 ax.set_yticks(range(len(heat)), heat.index)
@@ -177,7 +181,8 @@ for (i, j), n in pd.DataFrame(heat.values).stack().items():
 for side in ("left", "bottom"):
     ax.spines[side].set_visible(False)
 ax.tick_params(length=0)
-ax.set_title(f"주제 × 개막 월 (2019~2025 합계, 기타 {len(arc) - len(themed)}건 제외)")
+left_counts = arc.loc[left_out, "theme"].value_counts()
+ax.set_title("주제 × 개막 월 (2019~2025 합계, " + ", ".join(f"{k} {v}건" for k, v in left_counts.items()) + " 제외)")
 plt.show()
 
 peaks = heat.apply(lambda r: "·".join(f"{m}월" for m in r.index[r == r.max()]), axis=1)

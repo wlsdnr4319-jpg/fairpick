@@ -286,6 +286,15 @@ function YearlySection({ data }) {
   )
 }
 
+// 주제 표에서 뺀 것: 박람회가 아닌 행사(입주박람회, 선거 개표·공연 등)와 주제를 못 찾은 행사
+function excludedNote(data) {
+  const parts = Object.entries(data.excluded ?? {})
+    .filter(([, n]) => n > 0)
+    .map(([name, n]) => `${name} ${n.toLocaleString()}건`)
+  if (data.other_total > 0) parts.push(`주제를 못 찾은 ${data.other_total.toLocaleString()}건`)
+  return parts.length ? `제목 키워드로 나눴고, ${parts.join(' · ')}은 뺐어요` : '제목 키워드로 나눴어요'
+}
+
 function ThemeMonthSection({ data }) {
   const themes = data.themes.filter((t) => t.total > 0)
   const max = Math.max(1, ...themes.flatMap((t) => t.by_month))
@@ -337,7 +346,7 @@ function ThemeMonthSection({ data }) {
         <span>적음</span>
         {HEAT.map((c) => <span key={c} className="h-3 w-6 rounded-sm" style={{ background: c }} />)}
         <span>많음</span>
-        <span className="ml-auto">제목 키워드로 나눴고, 어느 주제에도 안 맞는 {data.other_total.toLocaleString()}건은 뺐어요</span>
+        <span className="ml-auto">{excludedNote(data)}</span>
       </div>
     </Section>
   )

@@ -19,7 +19,7 @@ from sqlalchemy import case, func, select
 
 from app.core.deps import DbSession
 from app.models import Category, Fair, FairArchive, Venue
-from app.services.archive import OTHER, THEMES
+from app.services.archive import EXCLUDED, OTHER, THEMES
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -147,8 +147,9 @@ class History(BaseModel):
     total: int
     venues: list[str]  # 색을 고정하려고 전시장 id 순서로 준다
     by_year: list[HistoryYear]
-    themes: list[ThemeMonths]  # THEMES 순서, '기타' 제외
+    themes: list[ThemeMonths]  # THEMES 순서. '기타'와 EXCLUDED 는 빠진다
     other_total: int  # 주제를 붙이지 못한 행사 수
+    excluded: dict[str, int]  # 박람회가 아니라 주제 표에서 뺀 행사 수 (입주박람회, 박람회 아님)
 
 
 @router.get("/history", response_model=History)
@@ -182,10 +183,13 @@ def history(
 
     months: dict[str, list[int]] = {t: [0] * 12 for t in THEMES}
     other = 0
+    excluded = dict.fromkeys(EXCLUDED, 0)
     for theme, m, n in db.execute(
         select(FairArchive.theme, month, func.count()).where(in_range).group_by(FairArchive.theme, month)
     ):
-        if theme == OTHER or theme not in months:
+        if theme in excluded:
+            excluded[theme] += n
+        elif theme == OTHER or theme not in months:
             other += n
         else:
             months[theme][m - 1] = n
@@ -210,4 +214,5 @@ def history(
         by_year=list(by_year.values()),
         themes=themes,
         other_total=other,
+        excluded=excluded,
     )
