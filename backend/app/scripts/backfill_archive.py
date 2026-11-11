@@ -9,6 +9,7 @@
 - exco: 1년에 1번 (연간 일정표)
 - coex: 1달에 1~3번 (월별 목록, 페이지 나눔)
 - setec: 1달에 1~2번 (개최기간 검색)
+- kintex: 1년에 2~3번 (기간 검색, 100건씩)
 같은 행사는 (source, external_id) 로 덮어쓰므로 다시 돌려도 중복되지 않는다.
 """
 
@@ -27,7 +28,7 @@ from app.models import CrawlSource
 from app.services import archive
 
 logger = logging.getLogger(__name__)
-SOURCES = ("exco", "coex", "setec")
+SOURCES = ("exco", "coex", "setec", "kintex")
 
 
 def _months(year: int):
@@ -41,6 +42,8 @@ def fetch_year(parser_key: str, client: PoliteClient, year: int):
         from app.crawlers.exco import EXHIBITION, LIST_URL
 
         return parser.parse_list(client.get(LIST_URL, params={"syear": year, "ex_cate": EXHIBITION}))
+    if parser_key == "kintex":
+        return parser.fetch_period(date(year, 1, 1), date(year, 12, 31))
     items = []
     for month, first, last in _months(year):
         if parser_key == "coex":
