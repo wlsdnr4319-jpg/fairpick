@@ -18,7 +18,7 @@ const CATEGORY_COLOR = {
 const INK = { muted: '#898781', grid: '#e1e0d9', axis: '#c3c2b7' }
 const SINGLE = '#2a78d6'
 // 전시장 색: 같은 검증 팔레트의 1~3번을 고정 순서로 (서버가 전시장 id 순서로 준다)
-const VENUE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a']
+const VENUE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100']
 // 히트맵: 파랑 한 가지 계열, 연한 색 = 적음 (팔레트 sequential 100~700)
 const HEAT = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b']
 
