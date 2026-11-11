@@ -5,6 +5,7 @@ import { StatusBadge, TagChip } from '../components/Badges'
 import BookmarkButton from '../components/BookmarkButton'
 import { MyVisit, Reviews, TagVotes } from '../components/FairEngagement'
 import { ErrorState } from '../components/States'
+import VenueMap from '../components/VenueMap'
 import { useFair } from '../hooks/useFairs'
 import { deadlineDDay, formatDateTime, formatPeriod, formatPrice, PUBLIC_ACCESS_LABEL } from '../utils/format'
 import NotFound from './NotFound'
@@ -47,9 +48,8 @@ export default function FairDetail() {
           label="장소"
           value={`${fair.venue.name}${fair.venue.hall ? ` ${fair.venue.hall}` : ''} · ${fair.venue.region}`}
           note={
-            // 지도·길찾기 (F-20): 좌표 대신 전시장 이름으로 지도 검색을 연다
-            <a href={`https://map.kakao.com/link/search/${encodeURIComponent(fair.venue.name)}`} target="_blank" rel="noopener noreferrer" className="text-indigo-700 underline">
-              지도·길찾기
+            <a href="#venue-map-title" className="text-indigo-700 underline">
+              오시는 길
             </a>
           }
         />
@@ -77,6 +77,8 @@ export default function FairDetail() {
           )}
         </section>
       )}
+
+      <VenueMap venue={fair.venue} />
 
       <TagVotes fairId={fair.id} />
       <MyVisit fairId={fair.id} />

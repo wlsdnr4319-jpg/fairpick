@@ -1,6 +1,7 @@
 """박람회 목록·상세 API (레퍼런스 13장: 비공개 박람회 404, 페이지네이션)."""
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from tests import factories as f
 from tests.conftest import TODAY
@@ -115,6 +116,23 @@ def test_detail(db, client):
     assert body["verified_at"] == "2026-11-01T14:00:00+09:00"
     assert body["bookmark_count"] == 2
     assert body["is_bookmarked"] is False
+    # 좌표가 없는 전시장: 지도 대신 이름 검색 링크를 쓰도록 빈 값
+    assert body["venue"] == {
+        "id": ven.id, "name": "코엑스", "region": "서울", "hall": None,
+        "address": None, "latitude": None, "longitude": None, "parking_note": None,
+    }  # fmt: skip
+
+
+def test_detail_venue_location(db, client):
+    cat, ven = _setup(db)
+    ven.address, ven.latitude, ven.longitude = "서울 강남구 영동대로 513", Decimal("37.5118730"), Decimal("127.0591110")
+    fair = f.fair(db, category=cat, venue=ven)
+    venue = client.get(f"/api/v1/fairs/{fair.id}").json()["venue"]
+    assert venue["address"] == "서울 강남구 영동대로 513"
+    assert (venue["latitude"], venue["longitude"]) == (37.511873, 127.059111)
+    # 목록 카드에는 좌표를 싣지 않는다 (응답 크기)
+    item = client.get("/api/v1/fairs").json()["items"][0]["venue"]
+    assert "latitude" not in item
 
 
 def test_detail_unpublished_or_missing_is_not_found(db, client):

@@ -28,6 +28,23 @@ def test_seed_is_idempotent(db):
     assert after_first["Venue"] == 8
 
 
+# 시·도별 대략의 범위 (위도, 경도). 좌표를 잘못 옮겨 적으면(위·경도 뒤바뀜, 다른 도시) 걸린다
+REGION_BOUNDS = {
+    "서울": ((37.41, 37.72), (126.76, 127.19)),
+    "경기": ((36.89, 38.30), (126.37, 127.86)),
+    "부산": ((34.87, 35.40), (128.76, 129.32)),
+    "대구": ((35.60, 36.03), (128.35, 128.78)),
+}
+
+
+def test_seeded_venues_have_location(db):
+    seed.run(db)
+    for v in db.scalars(select(Venue)):
+        (lat_lo, lat_hi), (lng_lo, lng_hi) = REGION_BOUNDS[v.region]
+        assert v.address and v.address.startswith(v.region), v.name
+        assert lat_lo < v.latitude < lat_hi and lng_lo < v.longitude < lng_hi, v.name
+
+
 def test_seeded_fairs_are_listed(db, client):
     seed.run(db)
     body = client.get("/api/v1/fairs?size=50").json()

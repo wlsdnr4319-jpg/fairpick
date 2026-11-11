@@ -18,6 +18,7 @@ from app.schemas.fair import (
     PreregOut,
     PriceOut,
     TagOut,
+    VenueDetailOut,
     VenueOut,
 )
 from app.services.fair_query import FairFilter, apply_filters, apply_sort
@@ -70,6 +71,17 @@ def _venue(fair: Fair) -> VenueOut:
     return VenueOut(id=fair.venue.id, name=fair.venue.name, region=fair.venue.region, hall=fair.hall)
 
 
+def _venue_detail(fair: Fair) -> VenueDetailOut:
+    v = fair.venue
+    return VenueDetailOut(
+        **_venue(fair).model_dump(),
+        address=v.address,
+        latitude=float(v.latitude) if v.latitude is not None else None,
+        longitude=float(v.longitude) if v.longitude is not None else None,
+        parking_note=v.parking_note,
+    )
+
+
 def to_card(fair: Fair, today: date, *, is_bookmarked: bool = False) -> FairCard:
     return FairCard(
         id=fair.id,
@@ -94,7 +106,7 @@ def to_detail(fair: Fair, today: date, *, bookmark_count: int, is_bookmarked: bo
         id=fair.id,
         title=fair.title,
         category=CategoryOut(code=fair.category.code, name=fair.category.name),
-        venue=_venue(fair),
+        venue=_venue_detail(fair),
         start_date=fair.start_date,
         end_date=fair.end_date,
         progress=progress_of(fair.start_date, fair.end_date, today),
