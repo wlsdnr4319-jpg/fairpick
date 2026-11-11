@@ -130,7 +130,7 @@ print(f"지난 행사 {len(arc)}건, 전시장 {arc['venue'].nunique()}곳")
 
 # 전시장 색은 서비스 통계 화면과 같다 (전시장 id 순서로 고정)
 venue_order = arc.drop_duplicates("venue").sort_values("venue_id")["venue"].tolist()
-VENUE_COLORS = dict(zip(venue_order, ["#2a78d6", "#eb6834", "#1baf7a"]))
+VENUE_COLORS = dict(zip(venue_order, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"], strict=False))
 yearly = arc.pivot_table(index="year", columns="venue", values="title", aggfunc="count", fill_value=0)
 yearly = yearly.reindex(range(2019, 2026), fill_value=0)[venue_order]
 

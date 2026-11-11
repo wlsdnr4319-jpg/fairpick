@@ -67,6 +67,26 @@ def test_kintex_list():
         parse_period(i.period_text)
 
 
+def test_kintex_past_list_skips_exhibitor_notice():
+    """2026-11-11 저장: 2019년 1~3월 전시 기간 검색 결과 (pageUnit=100)."""
+    items = _parse("kintex", "kintex_2019q1.html")
+    titles = [i.title for i in items]
+    assert len(items) == 16  # 17개 중 '2019서울모터쇼(참가업체용)' 제외
+    assert "2019서울모터쇼" in titles and not any("참가업체용" in t for t in titles)
+    assert parse_period(items[0].period_text) == (date(2019, 1, 25), date(2019, 1, 27))
+    for i in items:
+        parse_period(i.period_text)
+
+
+def test_kintex_fetch_period_pages_until_nothing_new():
+    page1 = _read("kintex_2019q1.html")
+    client = FakeClient(get=lambda url, params: page1 if params["pageIndex"] == 1 else "")
+    items = get_parser("kintex")(client).fetch_period(date(2019, 1, 1), date(2019, 3, 31))
+    assert len(items) == 16
+    search = {"searchType": "11", "searchStartDt": "2019-01-01", "searchEndDt": "2019-03-31", "pageUnit": 100}
+    assert [c[2] for c in client.calls] == [{**search, "pageIndex": p} for p in (1, 2)]
+
+
 def test_empty_or_changed_markup_returns_nothing():
     assert get_parser("coex")(client=None).parse_list("<html><body>점검 중</body></html>") == []
     assert get_parser("kintex")(client=None).parse_list("") == []
