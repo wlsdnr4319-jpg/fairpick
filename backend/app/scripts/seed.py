@@ -9,6 +9,7 @@
 """
 
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -47,9 +48,10 @@ def seed_tags(db: Session) -> dict[str, Tag]:
 
 def seed_venues(db: Session) -> dict[str, Venue]:
     out = {}
-    for name, region, address, aliases in VENUES:
+    for name, region, address, (lat, lng), aliases in VENUES:
         obj = db.scalar(select(Venue).where(Venue.name == name)) or Venue(name=name)
         obj.region, obj.address = region, address
+        obj.latitude, obj.longitude = Decimal(str(lat)), Decimal(str(lng))
         db.add(obj)
         db.flush()
         existing = set(db.scalars(select(VenueAlias.alias).where(VenueAlias.venue_id == obj.id)))

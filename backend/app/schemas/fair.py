@@ -25,6 +25,15 @@ class VenueOut(BaseModel):
     hall: str | None = None
 
 
+class VenueDetailOut(VenueOut):
+    """상세 화면용: 주소와 지도 좌표 (레퍼런스 F-20 지도·길찾기). 좌표가 없으면 이름으로 지도 검색."""
+
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    parking_note: str | None = None
+
+
 class TagOut(BaseModel):
     slug: str
     name: str
@@ -70,7 +79,7 @@ class FairDetail(BaseModel):
     id: int
     title: str
     category: CategoryOut
-    venue: VenueOut
+    venue: VenueDetailOut
     start_date: date
     end_date: date
     progress: Progress
