@@ -17,8 +17,17 @@ const CATEGORY_COLOR = {
 }
 const INK = { muted: '#898781', grid: '#e1e0d9', axis: '#c3c2b7' }
 const SINGLE = '#2a78d6'
-// 전시장 색: 같은 검증 팔레트의 1~3번을 고정 순서로 (서버가 전시장 id 순서로 준다)
-const VENUE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100']
+// 전시장 색: 같은 검증 팔레트에서 전시장마다 고정 (전시장이 늘어도 기존 색이 바뀌지 않게 이름으로 정한다)
+const VENUE_COLOR = {
+  코엑스: '#2a78d6',
+  SETEC: '#eb6834',
+  킨텍스: '#1baf7a',
+  엑스코: '#eda100',
+  '코엑스 마곡': '#e87ba4',
+  수원메쎄: '#6250d6',
+}
+const VENUE_FALLBACK = ['#008300', '#898781']
+const venueColor = (name, i) => VENUE_COLOR[name] ?? VENUE_FALLBACK[i % VENUE_FALLBACK.length]
 // 히트맵: 파랑 한 가지 계열, 연한 색 = 적음 (팔레트 sequential 100~700)
 const HEAT = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b']
 
@@ -232,13 +241,20 @@ function HistorySection({ data }) {
 function YearlySection({ data }) {
   const [asTable, setAsTable] = useState(false)
   const rows = data.by_year.map((y) => ({ year: `${y.year}`, total: y.total, ...y.by_venue }))
-  const counted = data.by_year.filter((y) => y.total > 0)
+  // 해마다 비교는 첫해부터 기록이 있는 전시장끼리만 한다. 중간에 기록이 시작된 곳을 더하면 늘어난 것처럼 보인다
+  const since = data.venue_since ?? {}
+  const late = data.venues.filter((v) => (since[v] ?? data.from_year) > data.from_year)
+  const steady = data.venues.filter((v) => !late.includes(v))
+  const counted = data.by_year
+    .map((y) => ({ year: y.year, total: steady.reduce((sum, v) => sum + (y.by_venue[v] ?? 0), 0) }))
+    .filter((y) => y.total > 0)
   const low = counted.reduce((a, b) => (b.total < a.total ? b : a), counted[0])
   const high = counted.reduce((a, b) => (b.total > a.total ? b : a), counted[0])
+  const basis = late.length ? `${steady.length}곳 기준 ` : ''
   return (
     <Section
       title="연도별 개최 수"
-      lead={`가장 적은 해는 ${low.year}년(${low.total}개), 가장 많은 해는 ${high.year}년(${high.total}개)이에요`}
+      lead={`${basis}가장 적은 해는 ${low.year}년(${low.total}개), 가장 많은 해는 ${high.year}년(${high.total}개)이에요`}
       action={
         <button type="button" className="min-h-11 rounded-lg border px-3 text-sm" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
           {asTable ? '차트로 보기' : '표로 보기'}
@@ -276,11 +292,16 @@ function YearlySection({ data }) {
               <Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} formatter={(v, name) => [`${v}개`, name]} />
               <Legend iconType="square" wrapperStyle={{ fontSize: 12, color: '#52514e' }} />
               {data.venues.map((v, i) => (
-                <Bar key={v} dataKey={v} name={v} stackId="y" fill={VENUE_COLORS[i % VENUE_COLORS.length]} stroke="#fff" strokeWidth={2} maxBarSize={44} />
+                <Bar key={v} dataKey={v} name={v} stackId="y" fill={venueColor(v, i)} stroke="#fff" strokeWidth={2} maxBarSize={44} />
               ))}
             </BarChart>
           </ResponsiveContainer>
         </div>
+      )}
+      {late.length > 0 && (
+        <p className="text-xs text-gray-500">
+          {late.map((v) => `${v}${topicParticle(v)} ${since[v]}년`).join(', ')}부터 공식 일정 기록이 있어요. 그 전 해는 0건이 아니라 기록이 없는 거예요.
+        </p>
       )}
     </Section>
   )

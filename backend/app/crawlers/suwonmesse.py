@@ -18,6 +18,10 @@ from app.crawlers.registry import register
 CALENDAR_URL = "https://suwonmesse.com/event_schedule/event_calendar/"
 DETAIL_URL = "https://suwonmesse.com/event_schedule/event_calendar/?uid={uid}&mod=document"
 VENUE = "수원메쎄"
+# 분류는 전시·이벤트·회의. 회의(교육·세미나·설명회)는 박람회가 아니라 건너뛴다 (코엑스·코엑스 마곡과 같은 기준)
+SKIP_KINDS = {"회의"}
+# 이름 없이 비워 두거나 '행사'·'비공개행사'라고만 적힌 대관 칸
+PLACEHOLDER_TITLES = {"", "행사", "비공개행사", "전시박람회"}
 
 
 @register
@@ -28,12 +32,15 @@ class SuwonMesseParser(BaseParser):
     def fetch_list(self, year: int, month: int) -> list[RawFair]:
         events: dict[str, CalendarEvent] = {}
         for offset in MONTH_OFFSETS:
-            y, m = shift_month(year, month, offset)
-            html = self.client.get(
-                CALENDAR_URL, params={"mod": "calendar", "kboard_calendar_year": y, "kboard_calendar_month": m}
-            )
-            merge(events, collect(html))
+            merge(events, self.fetch_month(*shift_month(year, month, offset)))
         return to_raw(events, since=date(year, month, 1))
+
+    def fetch_month(self, year: int, month: int) -> dict[str, CalendarEvent]:
+        """달력 한 달 치. 지난 행사 수집(backfill_archive)도 이걸 쓴다."""
+        html = self.client.get(
+            CALENDAR_URL, params={"mod": "calendar", "kboard_calendar_year": year, "kboard_calendar_month": month}
+        )
+        return collect(html)
 
     def parse_list(self, html: str) -> list[RawFair]:
         return to_raw(collect(html))
@@ -63,11 +70,15 @@ def collect(html: str) -> dict[str, CalendarEvent]:
             if not (uid and title_el):
                 continue
             kind_el = link.select_one(".classification")
+            kind = clean_text(kind_el.get_text(" ")) if kind_el else ""
+            title = clean_text(title_el.get_text(" "))
+            if kind in SKIP_KINDS or title in PLACEHOLDER_TITLES:
+                continue
             event = events.setdefault(
                 uid,
                 CalendarEvent(
-                    title=clean_text(title_el.get_text(" ")),
-                    kind=clean_text(kind_el.get_text(" ")) if kind_el else "",
+                    title=title,
+                    kind=kind,
                     detail_url=DETAIL_URL.format(uid=uid),
                     venue_text=VENUE,
                 ),

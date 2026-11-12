@@ -45,20 +45,27 @@ class CoexMagokParser(BaseParser):
             ("NEXT", (base_y, base_m)),
             ("NEXT", shift_month(base_y, base_m, 1)),
         ):
-            text = self.client.post(
-                AJAX_URL,
-                data={
-                    "action": "change_ex_month",
-                    "change_flag": flag,
-                    "current_year": y,
-                    "current_month": m,
-                    "search_keyword": "",
-                    "search_type": "",
-                    "search_dept": "",
-                },
-            )
-            merge(events, collect_ajax(text))
+            merge(events, self._ajax_month(flag, y, m))
         return to_raw(events, since=date(year, month, 1))
+
+    def fetch_month(self, year: int, month: int) -> dict[str, CalendarEvent]:
+        """아무 달이나 한 달 치: 앞달 기준 '다음 달'(NEXT)로 요청한다. 지난 행사 수집(backfill_archive)용."""
+        return self._ajax_month("NEXT", *shift_month(year, month, -1))
+
+    def _ajax_month(self, flag: str, year: int, month: int) -> dict[str, CalendarEvent]:
+        text = self.client.post(
+            AJAX_URL,
+            data={
+                "action": "change_ex_month",
+                "change_flag": flag,
+                "current_year": year,
+                "current_month": month,
+                "search_keyword": "",
+                "search_type": "",
+                "search_dept": "",
+            },
+        )
+        return collect_ajax(text)
 
     def parse_list(self, html: str) -> list[RawFair]:
         return to_raw(collect_page(html))
