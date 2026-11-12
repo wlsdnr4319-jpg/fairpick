@@ -30,7 +30,14 @@ export default function VenueMap({ venue }) {
           {venue.hall ? ` ${venue.hall}` : ''}
         </p>
         {venue.address && <p>{venue.address}</p>}
-        {venue.parking_note && <p className="text-gray-500">주차: {venue.parking_note}</p>}
+        {venue.parking_note && (
+          <div className="mt-2 rounded-lg bg-gray-50 px-3 py-2">
+            <p>
+              <span className="font-medium">주차</span> {venue.parking_note}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">요금은 바뀔 수 있어요. 행사가 크면 자리가 부족하니 대중교통을 권해요.</p>
+          </div>
+        )}
       </div>
       {hasLocation && (
         <iframe

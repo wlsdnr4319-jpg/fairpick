@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 
 from app.models import Category, Fair, FairTag, Tag, Venue, VenueAlias
 from app.scripts import seed
-from app.scripts.seed_data import FAIRS
+from app.scripts.seed_data import FAIRS, PARKING_NOTES
 
 
 def _counts(db):
@@ -43,6 +43,23 @@ def test_seeded_venues_have_location(db):
         (lat_lo, lat_hi), (lng_lo, lng_hi) = REGION_BOUNDS[v.region]
         assert v.address and v.address.startswith(v.region), v.name
         assert lat_lo < v.latitude < lat_hi and lng_lo < v.longitude < lng_hi, v.name
+
+
+def test_seeded_parking_notes(db):
+    seed.run(db)
+    notes = {v.name: v.parking_note for v in db.scalars(select(Venue))}
+    # 이름 오타로 아무 전시장에도 안 붙는 안내가 없어야 한다
+    assert set(PARKING_NOTES) <= set(notes)
+    assert {name for name, note in notes.items() if note} == set(PARKING_NOTES)
+    assert all(len(note) <= 500 for note in PARKING_NOTES.values())  # 컬럼 길이
+
+
+def test_fair_detail_includes_parking_note(db, client):
+    seed.run(db)
+    items = client.get("/api/v1/fairs?size=50").json()["items"]
+    kintex_fair = next(i for i in items if i["venue"]["name"] == "킨텍스")
+    venue = client.get(f"/api/v1/fairs/{kintex_fair['id']}").json()["venue"]
+    assert venue["parking_note"] == PARKING_NOTES["킨텍스"]
 
 
 def test_seeded_fairs_are_listed(db, client):
