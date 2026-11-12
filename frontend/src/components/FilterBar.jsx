@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useCategories, useTags, useVenues } from '../hooks/useFairs'
-import { getCoarseLocation } from '../utils/location'
+import { useMyLocation } from '../hooks/useMyLocation'
 import { TagChip } from './Badges'
 
 // 필터 상태는 URL 쿼리스트링에 저장한다. 예: /fairs?category=food&tags=date&free=true (레퍼런스 4장)
@@ -121,16 +121,11 @@ export default function FilterBar() {
 
 // 내 주변 박람회: 버튼을 눌렀을 때만 위치를 묻는다 (페이지를 열자마자 권한 창을 띄우지 않는다)
 function NearbyControl({ hasLocation, radius, onLocate, onRadius, onClear, selectClass }) {
-  const [state, setState] = useState({ loading: false, error: '' })
+  const state = useMyLocation()
 
   const locate = async () => {
-    setState({ loading: true, error: '' })
-    try {
-      onLocate(await getCoarseLocation())
-      setState({ loading: false, error: '' })
-    } catch (e) {
-      setState({ loading: false, error: e.message })
-    }
+    const found = await state.locate()
+    if (found) onLocate(found)
   }
 
   return (
