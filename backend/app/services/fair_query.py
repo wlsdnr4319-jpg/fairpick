@@ -13,10 +13,11 @@ from typing import Literal
 from sqlalchemy import Select, and_, func, or_, select, text
 
 from app.core.errors import AppError
+from app.core.geo import distance_m_sql
 from app.models import Bookmark, Category, Fair, FairTag, Tag, Venue
 
 Period = Literal["this_weekend", "this_month", "ongoing", "upcoming"]
-Sort = Literal["start_date", "prereg_deadline", "popular"]
+Sort = Literal["start_date", "prereg_deadline", "popular", "distance"]
 
 
 @dataclass
@@ -31,6 +32,12 @@ class FairFilter:
     free: bool = False
     public_only: bool = False
     sort: Sort = "start_date"
+    near: tuple[float, float] | None = None  # (위도, 경도). 거리순·반경 필터의 기준 위치
+    radius_km: float | None = None
+
+
+def _venue_distance_m(near: tuple[float, float]):
+    return distance_m_sql(Venue.latitude, Venue.longitude, *near)
 
 
 def weekend_of(today: date) -> tuple[date, date]:
@@ -61,6 +68,8 @@ def validate(f: FairFilter) -> None:
         raise AppError(400, "INVALID_PERIOD", "기간(period)과 날짜 직접 지정(from, to)은 함께 쓸 수 없어요")
     if f.date_from and f.date_to and f.date_from > f.date_to:
         raise AppError(400, "INVALID_PERIOD", "시작 날짜가 끝 날짜보다 늦어요")
+    if f.near is None and (f.sort == "distance" or f.radius_km is not None):
+        raise AppError(400, "LOCATION_REQUIRED", "거리순 정렬과 반경 검색에는 위치(lat, lng)가 필요해요")
 
 
 def _escape_like(value: str) -> str:
@@ -134,6 +143,11 @@ def apply_filters(stmt: Select, f: FairFilter, today: date, now_utc: datetime) -
         # 일반인 관람 가능 = 전체 공개(public) 또는 일부 날짜 공개(partial)
         stmt = stmt.where(Fair.public_access.in_(("public", "partial")))
 
+    if f.near and f.radius_km is not None:
+        # 반경 안의 전시장. 좌표가 없는 전시장은 거리가 NULL 이라 빠진다
+        within = select(Venue.id).where(_venue_distance_m(f.near) <= f.radius_km * 1000)
+        stmt = stmt.where(Fair.venue_id.in_(within))
+
     if f.sort == "prereg_deadline":
         # 마감 임박순: 아직 마감 전인 사전등록만 (NULL 제외)
         stmt = stmt.where(Fair.prereg_end_at.is_not(None), Fair.prereg_end_at >= now_utc)
@@ -145,12 +159,18 @@ def bookmark_count_subquery():
     return select(Bookmark.fair_id, func.count().label("cnt")).group_by(Bookmark.fair_id).subquery("bm")
 
 
-def apply_sort(stmt: Select, f: FairFilter) -> Select:
+def apply_sort(stmt: Select, f: FairFilter, today: date) -> Select:
     if f.sort == "prereg_deadline":
         return stmt.order_by(Fair.prereg_end_at, Fair.id)
     if f.sort == "popular":
         bm = bookmark_count_subquery()
         return stmt.outerjoin(bm, bm.c.fair_id == Fair.id).order_by(
             func.coalesce(bm.c.cnt, 0).desc(), Fair.start_date, Fair.id
+        )
+    if f.sort == "distance" and f.near:
+        # 가까운 순. 이미 끝난 행사와 좌표가 없는 전시장은 뒤로, 같은 전시장 안에서는 개막순
+        dist = _venue_distance_m(f.near)
+        return stmt.join(Venue, Venue.id == Fair.venue_id).order_by(
+            Fair.end_date < today, dist.is_(None), dist, Fair.start_date, Fair.id
         )
     return stmt.order_by(Fair.start_date, Fair.id)

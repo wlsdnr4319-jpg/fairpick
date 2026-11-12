@@ -8,6 +8,7 @@ from datetime import date, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.geo import distance_km
 from app.core.timeutil import d_day_of, progress_of, to_local
 from app.models import Bookmark, Fair, FairTag
 from app.schemas.fair import (
@@ -37,7 +38,7 @@ def list_fairs(
     base = apply_filters(select(Fair), f, today, now_utc)
 
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    fairs = db.scalars(apply_sort(base, f).options(*LOAD_RELATIONS).offset((page - 1) * size).limit(size)).all()
+    fairs = db.scalars(apply_sort(base, f, today).options(*LOAD_RELATIONS).offset((page - 1) * size).limit(size)).all()
     return list(fairs), total
 
 
@@ -82,7 +83,16 @@ def _venue_detail(fair: Fair) -> VenueDetailOut:
     )
 
 
-def to_card(fair: Fair, today: date, *, is_bookmarked: bool = False) -> FairCard:
+def _distance_km(fair: Fair, near: tuple[float, float] | None) -> float | None:
+    v = fair.venue
+    if near is None or v.latitude is None or v.longitude is None:
+        return None
+    return round(distance_km(*near, float(v.latitude), float(v.longitude)), 1)
+
+
+def to_card(
+    fair: Fair, today: date, *, is_bookmarked: bool = False, near: tuple[float, float] | None = None
+) -> FairCard:
     return FairCard(
         id=fair.id,
         title=fair.title,
@@ -98,6 +108,7 @@ def to_card(fair: Fair, today: date, *, is_bookmarked: bool = False) -> FairCard
         tags=_tags(fair),
         image_url=fair.image_url,
         is_bookmarked=is_bookmarked,
+        distance_km=_distance_km(fair, near),
     )
 
 

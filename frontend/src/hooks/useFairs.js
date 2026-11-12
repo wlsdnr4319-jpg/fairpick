@@ -6,6 +6,11 @@ import { fetchCategories, fetchFair, fetchFairs, fetchTags, fetchVenues, setBook
 export function useFairsFromUrl() {
   const [searchParams] = useSearchParams()
   const params = Object.fromEntries(searchParams)
+  // 위치가 빠진 거리순 주소(일부만 복사한 링크 등)는 오류 대신 기본 정렬로 보여 준다
+  if (!(params.lat && params.lng)) {
+    if (params.sort === 'distance') delete params.sort
+    delete params.radius_km
+  }
   return useQuery({
     queryKey: ['fairs', params],
     queryFn: () => fetchFairs(params),

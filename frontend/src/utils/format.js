@@ -52,3 +52,9 @@ export const PUBLIC_ACCESS_LABEL = {
   trade_only: '업계 종사자 전용',
   unknown: '관람 조건 확인 중',
 }
+
+// 거리(km). 위치를 약 1km 단위로 줄여 보내므로 소수점까지 보여 주지 않는다
+export function formatDistance(km) {
+  if (km == null) return ''
+  return km < 1 ? '1km 이내' : `약 ${Math.round(km).toLocaleString('ko-KR')}km`
+}
