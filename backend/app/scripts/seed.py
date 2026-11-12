@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.models import Category, CrawlSource, Fair, FairTag, Tag, Venue, VenueAlias
-from app.scripts.seed_data import CATEGORIES, CRAWL_SOURCES, FAIRS, TAGS, VENUES
+from app.scripts.seed_data import CATEGORIES, CRAWL_SOURCES, FAIRS, PARKING_NOTES, TAGS, VENUES
 
 # 박람회 30건을 조사·확인한 날 (verified=True 인 행사의 정보 확인일). 한국 시간 2026-11-04 14:00 = UTC 05:00
 RESEARCHED_AT_UTC = datetime(2026, 11, 4, 5, 0)
@@ -52,6 +52,7 @@ def seed_venues(db: Session) -> dict[str, Venue]:
         obj = db.scalar(select(Venue).where(Venue.name == name)) or Venue(name=name)
         obj.region, obj.address = region, address
         obj.latitude, obj.longitude = Decimal(str(lat)), Decimal(str(lng))
+        obj.parking_note = PARKING_NOTES.get(name)
         db.add(obj)
         db.flush()
         existing = set(db.scalars(select(VenueAlias.alias).where(VenueAlias.venue_id == obj.id)))

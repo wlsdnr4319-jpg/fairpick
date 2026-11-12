@@ -67,6 +67,25 @@ VENUES = [
     ("엑스코", "대구", "대구 북구 엑스코로 10", (35.906863, 128.613279), ["EXCO", "대구 엑스코"]),
 ]
 
+# 승용차 관람객 주차 요금 요약 (2026-11-12 각 전시장 공식 주차 안내 페이지에서 확인). 요금은 바뀌므로 화면에
+# '방문 전 확인' 안내를 함께 띄운다. 공식 요금을 확인하지 못한 곳(aT센터·벡스코·엑스코)은 넣지 않는다:
+# 행사 블로그·관광 정보에 나온 숫자는 날짜·출처가 제각각이라 틀린 요금을 보여 주느니 비워 둔다.
+PARKING_NOTES = {
+    # https://www.coex.co.kr/guide/parking-information/fee/
+    "코엑스": "15분 1,500원, 하루 최대 60,000원. 전시 관람객 할인은 없고, 카카오T 주차로 결제하면 1시간 4,800원.",
+    # https://coexmagok.co.kr/guide/information/information/
+    "코엑스 마곡": "최초 30분 2,000원, 이후 15분 1,000원, 종일권 30,000원.",
+    # https://www.setec.or.kr/front/traffic/trafficInfo02.do
+    "SETEC": "최초 30분 1,800원, 이후 5분 300원, 하루 최대 21,600원(6시간 이상). 경차·저공해·전기차 50% 할인.",
+    # https://www.kintex.com/web/ko/service/parking_user.do
+    "킨텍스": (
+        "기본 20분 1,240원, 이후 10분 620원, 하루 최대 19,000원. 경차·저공해차 50% 할인. "
+        "큰 행사 때는 임시주차장(T2~T4, 하루 최대 6,500원)을 연다."
+    ),
+    # https://suwonmesse.com/facilities_guide/parking/
+    "수원메쎄": "10분 700원, 하루 최대 30,000원(경차·저공해 할인 없음). 도보 5분 거리에 수원역 환승센터 공영주차장 등이 있다.",
+}
+
 COEX = "https://www.coex.co.kr/exhibitions/"
 KINTEX = "https://www.kintex.com/web/ko/event/view.do?seq="
 MAGOK = "https://coexmagok.co.kr/exhibitions/"
