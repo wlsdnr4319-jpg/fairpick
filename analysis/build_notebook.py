@@ -113,7 +113,9 @@ print("입장료를 모르는 박람회가 많을수록 이 비율은 낮게 나
     nbformat.v4.new_markdown_cell(
         "## 5. 지난 7년의 흐름 (지난 행사 기록)\n\n"
         "`fair_archive` 는 전시장 공식 사이트의 지난 일정을 모은 분석 전용 테이블이다 "
-        "(`python -m app.scripts.backfill_archive --from 2019 --to 2025`). 개막일 기준, 학회·회의는 뺐다."
+        "(`python -m app.scripts.backfill_archive --from 2019 --to 2025`). 개막일 기준, 학회·회의는 뺐다.\n\n"
+        "수원메쎄(달력 기록 2020년 7월~)와 코엑스 마곡(2024년 개관)은 기록이 늦게 시작해, "
+        "해마다 비교할 때는 2019년부터 기록이 있는 전시장 합계를 본다."
     ),
     nbformat.v4.new_code_cell(
         """arc = pd.read_sql(
@@ -128,11 +130,19 @@ arc["month_no"] = arc["start_date"].dt.month
 arc["theme"] = arc["theme"].str.replace("·", "ㆍ")
 print(f"지난 행사 {len(arc)}건, 전시장 {arc['venue'].nunique()}곳")
 
-# 전시장 색은 서비스 통계 화면과 같다 (전시장 id 순서로 고정)
+# 전시장 색은 서비스 통계 화면과 같다 (전시장마다 고정, 쌓는 순서는 전시장 id 순)
 venue_order = arc.drop_duplicates("venue").sort_values("venue_id")["venue"].tolist()
-VENUE_COLORS = dict(zip(venue_order, ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"], strict=False))
+VENUE_COLORS = {"코엑스": "#2a78d6", "SETEC": "#eb6834", "킨텍스": "#1baf7a", "엑스코": "#eda100",
+                "코엑스 마곡": "#e87ba4", "수원메쎄": "#6250d6"}
 yearly = arc.pivot_table(index="year", columns="venue", values="title", aggfunc="count", fill_value=0)
 yearly = yearly.reindex(range(2019, 2026), fill_value=0)[venue_order]
+
+# 기록이 2019년보다 늦게 시작하는 전시장(수원메쎄 달력 2020.7~, 코엑스 마곡 2024 개관)은 해마다 비교에서 뺀다.
+# 더하면 전시장이 늘어난 만큼 박람회도 늘어난 것처럼 보인다
+since = arc.groupby("venue")["year"].min()
+late = since[since > 2019]
+steady = [v for v in venue_order if v not in late.index]
+print("기록 시작이 늦은 전시장:", ", ".join(f"{v} {y}년~" for v, y in late.items()) or "없음")
 
 fig, ax = plt.subplots(figsize=(9, 3.5))
 bottom = pd.Series(0, index=yearly.index)
@@ -149,7 +159,7 @@ ax.legend(frameon=False, ncols=len(venue_order), loc="lower right", bbox_to_anch
 ax.grid(axis="y", color="#e1e0d9")
 ax.set_axisbelow(True)
 plt.show()
-yearly.assign(합계=yearly.sum(axis=1))"""
+yearly.assign(합계=yearly.sum(axis=1), **{f"{len(steady)}곳 합계": yearly[steady].sum(axis=1)})"""
     ),
     nbformat.v4.new_markdown_cell(
         "## 6. 주제별로 언제 많이 열리나\n\n"

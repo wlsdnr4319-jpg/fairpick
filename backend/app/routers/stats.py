@@ -145,7 +145,10 @@ class History(BaseModel):
     from_year: int
     to_year: int
     total: int
-    venues: list[str]  # 색을 고정하려고 전시장 id 순서로 준다
+    venues: list[str]  # 전시장 id 순서
+    # 전시장별로 기록이 처음 나오는 해. from_year 보다 늦으면 그 전 해는 '0건'이 아니라 '기록 없음'이다
+    # (수원메쎄 달력은 2020년 7월부터, 코엑스 마곡은 2024년 개관). 연도 비교는 from_year 부터 있는 곳끼리 한다
+    venue_since: dict[str, int]
     by_year: list[HistoryYear]
     themes: list[ThemeMonths]  # THEMES 순서. '기타'와 EXCLUDED 는 빠진다
     other_total: int  # 주제를 붙이지 못한 행사 수
@@ -163,11 +166,14 @@ def history(
     in_range = year.between(from_year, to_year)
 
     venue_rows = db.execute(
-        select(Venue.id, Venue.name)
-        .where(Venue.id.in_(select(FairArchive.venue_id).where(in_range)))
+        select(Venue.id, Venue.name, func.min(year))
+        .join(FairArchive, FairArchive.venue_id == Venue.id)
+        .where(in_range)
+        .group_by(Venue.id, Venue.name)
         .order_by(Venue.id)
     ).all()
-    venues = [name for _, name in venue_rows]
+    venues = [name for _, name, _ in venue_rows]
+    venue_since = {name: since for _, name, since in venue_rows}
 
     by_year = {
         y: HistoryYear(year=y, total=0, by_venue=dict.fromkeys(venues, 0)) for y in range(from_year, to_year + 1)
@@ -211,6 +217,7 @@ def history(
         to_year=to_year,
         total=total,
         venues=venues,
+        venue_since=venue_since,
         by_year=list(by_year.values()),
         themes=themes,
         other_total=other,

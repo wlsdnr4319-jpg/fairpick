@@ -10,6 +10,8 @@
 - coex: 1달에 1~3번 (월별 목록, 페이지 나눔)
 - setec: 1달에 1~2번 (개최기간 검색)
 - kintex: 1년에 2~3번 (기간 검색, 100건씩)
+- suwonmesse, coexmagok: 1년에 13번 (달력. 해를 넘기는 행사를 위해 지난해 12월부터 받는다)
+  기록이 있는 달: 수원메쎄 2020년 7월~, 코엑스 마곡 2024년 11월(개관)~ (2026-11-12 확인). 그 전 해는 0건으로 나온다
 같은 행사는 (source, external_id) 로 덮어쓰므로 다시 돌려도 중복되지 않는다.
 """
 
@@ -21,6 +23,7 @@ from datetime import date
 from sqlalchemy import select
 
 from app.core.deps import get_now
+from app.crawlers.calendar import CalendarEvent, merge, shift_month, to_raw
 from app.crawlers.http import PoliteClient
 from app.crawlers.registry import get_parser
 from app.db.session import SessionLocal
@@ -28,7 +31,8 @@ from app.models import CrawlSource
 from app.services import archive
 
 logger = logging.getLogger(__name__)
-SOURCES = ("exco", "coex", "setec", "kintex")
+SOURCES = ("exco", "coex", "setec", "kintex", "suwonmesse", "coexmagok")
+CALENDAR_SOURCES = ("suwonmesse", "coexmagok")
 
 
 def _months(year: int):
@@ -44,6 +48,8 @@ def fetch_year(parser_key: str, client: PoliteClient, year: int):
         return parser.parse_list(client.get(LIST_URL, params={"syear": year, "ex_cate": EXHIBITION}))
     if parser_key == "kintex":
         return parser.fetch_period(date(year, 1, 1), date(year, 12, 31))
+    if parser_key in CALENDAR_SOURCES:
+        return calendar_year(parser, year)
     items = []
     for month, first, last in _months(year):
         if parser_key == "coex":
@@ -51,6 +57,17 @@ def fetch_year(parser_key: str, client: PoliteClient, year: int):
         else:  # setec
             items += parser.fetch_period(first, last)
     return items
+
+
+def calendar_year(parser, year: int):
+    """
+    달력 사이트의 한 해. 지난해 12월 ~ 올해 12월을 받아 합친다.
+    12.30 ~ 1.2 같은 행사는 올해 차례에 12월 날짜까지 모여 온전한 기간으로 덮어써진다.
+    """
+    events: dict[str, CalendarEvent] = {}
+    for offset in range(-1, 12):
+        merge(events, parser.fetch_month(*shift_month(year, 1, offset)))
+    return to_raw(events, since=date(year, 1, 1))
 
 
 def main() -> None:

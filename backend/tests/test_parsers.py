@@ -137,6 +137,33 @@ def test_suwonmesse_fetch_merges_four_months():
     assert len(items) == 9
 
 
+def test_suwonmesse_skips_meetings_and_placeholders():
+    html = _read("suwonmesse_2026_11.html")
+    assert get_parser("suwonmesse")(client=None).parse_list(html.replace('btn-fair">전시<', 'btn-fair">회의<')) == []
+    renamed = html.replace("2026 수원 우수중소기업 &amp; 밀리언쇼", "비공개행사")
+    assert "704" not in {i.external_id for i in get_parser("suwonmesse")(client=None).parse_list(renamed)}
+
+
+def test_backfill_calendar_year_starts_from_last_december():
+    from app.scripts.backfill_archive import calendar_year
+
+    pages = {(2026, 11): _read("suwonmesse_2026_11.html"), (2026, 12): _read("suwonmesse_2026_12.html")}
+    client = FakeClient(get=lambda url, p: pages.get((p["kboard_calendar_year"], p["kboard_calendar_month"]), ""))
+    items = calendar_year(get_parser("suwonmesse")(client=client), 2026)
+    months = [(c[2]["kboard_calendar_year"], c[2]["kboard_calendar_month"]) for c in client.calls]
+    assert len(months) == 13 and months[0] == (2025, 12) and months[-1] == (2026, 12)
+    assert len(items) == 9
+
+
+def test_coexmagok_fetch_month_asks_next_of_previous_month():
+    december = _read("coexmagok_ajax_2026_12.txt")
+    client = FakeClient(post=lambda url, data: december)
+    events = get_parser("coexmagok")(client=client).fetch_month(2027, 1)
+    ((_, _, data),) = client.calls
+    assert (data["change_flag"], data["current_year"], data["current_month"]) == ("NEXT", 2026, 12)
+    assert events  # 응답을 그대로 파싱한다
+
+
 def test_calendar_merge_joins_days_across_months():
     nov = {"a": calendar.CalendarEvent("행사", "전시", "u", "수원메쎄", {date(2026, 11, 29), date(2026, 11, 30)})}
     dec = {"a": calendar.CalendarEvent("행사", "전시", "u", "수원메쎄", {date(2026, 12, 1), date(2026, 12, 2)})}

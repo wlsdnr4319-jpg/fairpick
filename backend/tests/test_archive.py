@@ -21,6 +21,13 @@ NOW = datetime(2026, 11, 4, 3, 0)
         ("컬러풀대구 웨딩박람회 in 엑스코", "웨딩"),
         ("웨딩&베이비 페어", "베이비·육아"),  # 위에 있는 주제가 먼저
         ("궁디팡팡 캣페스타", "반려동물"),
+        # 수원메쎄·코엑스 마곡 (2026-11-12)
+        ("수원 하늘채 더퍼스트 하우스페어", "입주박람회"),
+        ("화서역 파크푸르지오 세사하우스 2차", "입주박람회"),
+        ("명일방주 ONLY 展: PLAY ON THE ARK", "문화·취미"),
+        ('"봉래제", 동방프로젝트 온리전', "문화·취미"),
+        ("2025 대한민국 라면박람회", "식음료"),
+        ("2025 KOREA KIDS FAIR", "베이비·육아"),
         ("2026 대구국제커피&카페페스타", "식음료"),
         ("2026 대구 캠페어 (캠핑&레저차량박람회)", "캠핑·레저"),
         ("제 24회 제일창업박람회 in 대구", "취업·창업"),
@@ -123,6 +130,7 @@ def test_history_stats(db, client):
 
     data = client.get("/api/v1/stats/history", params={"from_year": 2019, "to_year": 2021}).json()
     assert data["total"] == 7 and data["venues"] == ["코엑스", "엑스코"]
+    assert data["venue_since"] == {"코엑스": 2019, "엑스코": 2019}
     assert [(y["year"], y["total"]) for y in data["by_year"]] == [(2019, 3), (2020, 2), (2021, 2)]
     assert data["by_year"][0]["by_venue"] == {"코엑스": 2, "엑스코": 1}
     themes = {t["theme"]: t for t in data["themes"]}
@@ -133,6 +141,23 @@ def test_history_stats(db, client):
     assert data["other_total"] == 0
     assert data["excluded"] == {"입주박람회": 1, "박람회 아님": 1}
     assert {"기타", "입주박람회", "박람회 아님"}.isdisjoint(themes)
+
+
+def test_history_venue_since(db, client):
+    """기록이 늦게 시작하는 전시장(수원메쎄 2021~)은 첫 해를 알려 준다. 범위 밖 기록은 세지 않는다."""
+    coex, suwon = f.venue(db, name="코엑스"), f.venue(db, name="수원메쎄", region="경기")
+    rows = [
+        ("coex", coex, "c0", "베이비페어", "2018.05.01 - 2018.05.03"),
+        ("coex", coex, "c1", "베이비페어", "2019.03.07 - 2019.03.10"),
+        ("suwonmesse", suwon, "702", "펫쇼", "2021.06.04 ~ 2021.06.06"),
+        ("suwonmesse", suwon, "703", "펫쇼", "2022.06.03 ~ 2022.06.05"),
+    ]
+    for source, venue, ext, title, period in rows:
+        archive.upsert(db, source=source, venue_id=venue.id, items=[_raw(ext, title, period)], now=NOW)
+
+    data = client.get("/api/v1/stats/history", params={"from_year": 2019, "to_year": 2022}).json()
+    assert data["venue_since"] == {"코엑스": 2019, "수원메쎄": 2021}
+    assert data["venues"] == ["코엑스", "수원메쎄"]
 
 
 def test_setec_fetch_period_sends_date_range():
