@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { formatPeriod } from '../utils/format'
+import { formatDistance, formatPeriod } from '../utils/format'
 import { StatusBadge, TagChip } from './Badges'
 import BookmarkButton from './BookmarkButton'
 
@@ -38,6 +38,7 @@ export default function FairCard({ fair, compact = false }) {
         <p className="text-sm text-gray-500">
           {fair.venue.name}
           {fair.venue.hall ? ` ${fair.venue.hall}` : ''}
+          {fair.distance_km != null && <span className="text-indigo-700"> · {formatDistance(fair.distance_km)}</span>}
         </p>
         {fair.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">

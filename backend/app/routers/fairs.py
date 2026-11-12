@@ -46,6 +46,9 @@ def list_fairs(
     free: bool = False,
     public_only: bool = False,
     sort: Sort = "start_date",
+    lat: Annotated[float | None, Query(ge=-90, le=90, description="내 위치 위도 (거리순·반경 검색용)")] = None,
+    lng: Annotated[float | None, Query(ge=-180, le=180, description="내 위치 경도")] = None,
+    radius_km: Annotated[float | None, Query(gt=0, le=500, description="이 거리(km) 안의 전시장만")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=50)] = 20,  # size 는 최대 50
 ):
@@ -60,16 +63,25 @@ def list_fairs(
         free=free,
         public_only=public_only,
         sort=sort,
+        near=_near(lat, lng),
+        radius_km=radius_km,
     )
     validate(f)
     fairs, total = fair_service.list_fairs(db, f, today=today, now_utc=now, page=page, size=size)
     marked = fair_service.bookmarked_ids(db, user.id if user else None, [x.id for x in fairs])
     return Page[FairCard](
-        items=[fair_service.to_card(x, today, is_bookmarked=x.id in marked) for x in fairs],
+        items=[fair_service.to_card(x, today, is_bookmarked=x.id in marked, near=f.near) for x in fairs],
         total=total,
         page=page,
         size=size,
     )
+
+
+def _near(lat: float | None, lng: float | None) -> tuple[float, float] | None:
+    """위치는 요청에만 쓰고 저장하지 않는다. 위도·경도는 둘 다 있거나 둘 다 없어야 한다."""
+    if (lat is None) != (lng is None):
+        raise AppError(400, "LOCATION_REQUIRED", "위치는 위도(lat)와 경도(lng)를 함께 보내 주세요")
+    return (lat, lng) if lat is not None else None
 
 
 @router.get("/{fair_id}", response_model=FairDetail)

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useCategories, useTags, useVenues } from '../hooks/useFairs'
+import { getCoarseLocation } from '../utils/location'
 import { TagChip } from './Badges'
 
 // 필터 상태는 URL 쿼리스트링에 저장한다. 예: /fairs?category=food&tags=date&free=true (레퍼런스 4장)
@@ -15,6 +16,13 @@ const SORTS = [
   ['start_date', '개막순'],
   ['prereg_deadline', '사전등록 마감 임박순'],
   ['popular', '인기순'],
+]
+const DISTANCE_SORT = ['distance', '가까운 순'] // 위치가 있을 때만 고를 수 있다
+const RADII = [
+  ['', '거리 제한 없음'],
+  ['10', '10km 이내'],
+  ['30', '30km 이내'],
+  ['100', '100km 이내'],
 ]
 
 export default function FilterBar() {
@@ -40,6 +48,9 @@ export default function FilterBar() {
     else set.add(slug)
     update({ tags: [...set].join(',') })
   }
+
+  const hasLocation = params.has('lat') && params.has('lng')
+  const sorts = hasLocation ? [...SORTS, DISTANCE_SORT] : SORTS
 
   const select = 'min-h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm'
   const check = 'flex min-h-11 items-center gap-2 text-sm'
@@ -74,7 +85,7 @@ export default function FilterBar() {
           ))}
         </select>
         <select aria-label="정렬" className={select} value={params.get('sort') ?? 'start_date'} onChange={(e) => update({ sort: e.target.value === 'start_date' ? '' : e.target.value })}>
-          {SORTS.map(([v, label]) => (
+          {sorts.map(([v, label]) => (
             <option key={v} value={v}>
               {label}
             </option>
@@ -90,12 +101,71 @@ export default function FilterBar() {
         </label>
       </div>
 
+      <NearbyControl
+        hasLocation={hasLocation}
+        radius={params.get('radius_km') ?? ''}
+        onLocate={({ lat, lng }) => update({ lat: String(lat), lng: String(lng), sort: 'distance' })}
+        onRadius={(radius_km) => update({ radius_km })}
+        onClear={() => update({ lat: '', lng: '', radius_km: '', sort: params.get('sort') === 'distance' ? '' : params.get('sort') })}
+        selectClass={select}
+      />
+
       <div className="flex flex-wrap gap-1.5" aria-label="태그">
         {tags.map((t) => (
           <TagChip key={t.slug} tag={t} selected={selectedTags.includes(t.slug)} onClick={() => toggleTag(t.slug)} />
         ))}
       </div>
     </section>
+  )
+}
+
+// 내 주변 박람회: 버튼을 눌렀을 때만 위치를 묻는다 (페이지를 열자마자 권한 창을 띄우지 않는다)
+function NearbyControl({ hasLocation, radius, onLocate, onRadius, onClear, selectClass }) {
+  const [state, setState] = useState({ loading: false, error: '' })
+
+  const locate = async () => {
+    setState({ loading: true, error: '' })
+    try {
+      onLocate(await getCoarseLocation())
+      setState({ loading: false, error: '' })
+    } catch (e) {
+      setState({ loading: false, error: e.message })
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={locate}
+          disabled={state.loading}
+          className="min-h-11 rounded-lg border border-indigo-300 bg-white px-4 text-sm text-indigo-700 disabled:opacity-60"
+        >
+          {state.loading ? '위치 확인 중…' : hasLocation ? '내 위치 다시 찾기' : '내 주변 박람회'}
+        </button>
+        {hasLocation && (
+          <>
+            <select aria-label="거리" className={selectClass} value={radius} onChange={(e) => onRadius(e.target.value)}>
+              {RADII.map(([v, label]) => (
+                <option key={v} value={v}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={onClear} className="min-h-11 px-2 text-sm text-gray-500 underline">
+              위치 지우기
+            </button>
+          </>
+        )}
+      </div>
+      {state.error && (
+        <p role="alert" className="text-sm text-red-600">
+          {state.error}
+        </p>
+      )}
+      {hasLocation && !state.error && <p className="text-xs text-gray-500">위치는 약 1km 단위로만 쓰고 저장하지 않아요.</p>}
+    </div>
   )
 }
 

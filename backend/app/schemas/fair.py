@@ -73,6 +73,7 @@ class FairCard(BaseModel):
     tags: list[TagOut]
     image_url: str | None
     is_bookmarked: bool = False  # 로그인 사용자의 북마크 여부
+    distance_km: float | None = None  # 위치(lat, lng)를 보냈을 때만. 전시장 좌표가 없으면 None
 
 
 class FairDetail(BaseModel):
