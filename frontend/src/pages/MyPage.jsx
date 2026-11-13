@@ -58,7 +58,7 @@ export default function MyPage() {
 }
 
 export function Settings() {
-  const { user, setUser } = useAuth()
+  const { user, endSession } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState('')
 
@@ -66,7 +66,7 @@ export function Settings() {
     if (!window.confirm('탈퇴하면 이메일, 닉네임, 북마크가 모두 지워지고 되돌릴 수 없어요. 탈퇴할까요?')) return
     try {
       await withdraw()
-      setUser(null)
+      endSession() // 토큰까지 지운다. 남기면 탈퇴한 회원의 토큰으로 요청해 공개 화면도 401 이 된다
       navigate('/', { replace: true })
     } catch (err) {
       setError(errorMessage(err))

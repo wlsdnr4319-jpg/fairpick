@@ -10,6 +10,8 @@ export function AuthProvider({ children }) {
   const queryClient = useQueryClient()
   const [user, setUser] = useState(null)
   const [ready, setReady] = useState(false) // 앱 시작 때 로그인 복구를 끝냈는지
+  // 사용자가 직접 로그아웃·탈퇴했는지. 로그인이 풀린 이유가 이것이면 보호된 화면은 로그인 화면이 아니라 홈으로 보낸다
+  const [signedOut, setSignedOut] = useState(false)
 
   // 새로고침하면 메모리의 토큰이 사라지므로 /auth/refresh 를 한 번 호출해 로그인 상태를 복구한다
   useEffect(() => {
@@ -34,6 +36,7 @@ export function AuthProvider({ children }) {
     async (email, password) => {
       const data = await authApi.login({ email, password })
       setAccessToken(data.access_token)
+      setSignedOut(false)
       setUser(data.user)
       queryClient.invalidateQueries() // 북마크 여부가 바뀐다
       return data.user
@@ -41,17 +44,27 @@ export function AuthProvider({ children }) {
     [queryClient],
   )
 
+  // 로그아웃·탈퇴 뒤 정리: 메모리의 토큰, 사용자, 받아 둔 데이터(북마크 여부 등)를 모두 지운다.
+  // 토큰을 남기면 탈퇴한 회원의 토큰으로 요청해 공개 화면까지 401 로 실패한다
+  const endSession = useCallback(() => {
+    setSignedOut(true)
+    setAccessToken(null)
+    setUser(null)
+    queryClient.clear()
+  }, [queryClient])
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout()
     } finally {
-      setAccessToken(null)
-      setUser(null)
-      queryClient.clear()
+      endSession()
     }
-  }, [queryClient])
+  }, [endSession])
 
-  const value = useMemo(() => ({ user, ready, login, logout, setUser }), [user, ready, login, logout])
+  const value = useMemo(
+    () => ({ user, ready, signedOut, login, logout, endSession, setUser }),
+    [user, ready, signedOut, login, logout, endSession],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
