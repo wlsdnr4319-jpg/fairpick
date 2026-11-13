@@ -103,7 +103,7 @@ erDiagram
 
 | 층 | 도구 | 개수 |
 | --- | --- | --- |
-| 백엔드 | pytest, **MySQL 8.4** (SQLite 가 아님) | 216 |
+| 백엔드 | pytest, **MySQL 8.4** (SQLite 가 아님) | 222 |
 | 프론트 단위·컴포넌트 | Vitest + Testing Library + MSW | 144 |
 | E2E | Playwright: 실제 API·DB·빌드한 프론트, 데스크톱·모바일 화면 | 19 시나리오 × 2 |
 
