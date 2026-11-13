@@ -5,7 +5,7 @@
 | 층 | 도구 | 어디서 | 개수 | 무엇을 |
 | --- | --- | --- | --- | --- |
 | 백엔드 | pytest + MySQL 8.4 | `backend/tests/` | 216 | API·서비스·파서·정규화. 테스트마다 트랜잭션 롤백 |
-| 프론트 단위·컴포넌트 | Vitest + Testing Library + MSW | `frontend/src/**/*.test.js(x)` | 80 | 포맷 함수, 토큰 재발급, 위치 훅, 화면(목록·로그인·가드). API 는 MSW 가짜 응답 |
+| 프론트 단위·컴포넌트 | Vitest + Testing Library + MSW | `frontend/src/**/*.test.js(x)` | 81 | 포맷 함수, 토큰 재발급, 위치 훅, 화면(목록·로그인·가드). API 는 MSW 가짜 응답 |
 | E2E | Playwright (Chromium) | `frontend/e2e/` | 8 시나리오 × 2 화면 | 실제 API + MySQL + 빌드한 프론트. 데스크톱과 모바일(Pixel 7) 화면 |
 
 CI(GitHub Actions)는 PR 마다 세 층을 모두 돌립니다 (`.github/workflows/ci.yml`).
@@ -69,7 +69,7 @@ docker exec -it fairpick-db-1 mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS 
 
 | 증상 | 원인 | 해결 |
 | --- | --- | --- |
-| 북마크한 박람회 상세에서 새로고침하면 '북마크 1명' 인데 버튼은 안 눌린 상태 | 새로고침 직후 화면이 로그인 복구(`/auth/refresh`)보다 먼저 비로그인으로 데이터를 받고, 복구 뒤 다시 받지 않음 | 복구가 끝나면 쿼리를 무효화해 다시 받음 (`store/AuthContext.jsx`) |
+| 북마크한 박람회 상세에서 새로고침하면 '북마크 1명' 인데 버튼은 안 눌린 상태 | 새로고침 직후 화면이 로그인 복구(`/auth/refresh`)보다 먼저 비로그인으로 데이터를 받고, 복구 뒤 다시 받지 않음 | 복구가 끝나면 진행 중인 요청을 취소하고 쿼리를 무효화해 다시 받음 (`store/AuthContext.jsx`). 무효화만 하면 첫 응답을 기다리는 쿼리는 다시 요청하지 않아 CI 에서만 실패했음 |
 | 북마크 → 로그인 화면 → 로그인하면 가끔 원래 박람회가 아니라 홈으로 감 | 로그인 성공으로 user 가 생기는 순간 `GuestOnlyRoute` 가 다시 그려져 홈으로 보내는 것과, 로그인 화면의 `navigate(next)` 가 경쟁 | 가드도 `next` 로 보냄 (`routes/Guards.jsx`) |
 
 두 버그 모두 단위 테스트로도 재현해 두었습니다 (고치기 전 코드에서 실패하는 것 확인).
