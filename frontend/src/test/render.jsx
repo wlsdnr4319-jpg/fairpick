@@ -8,7 +8,8 @@ import { AuthProvider } from '../store/AuthContext'
 // 지금 주소를 화면에 적어 둔다. 테스트에서 이동·쿼리스트링을 확인할 때 쓴다
 function LocationProbe() {
   const location = useLocation()
-  return <output data-testid="location">{location.pathname + location.search}</output>
+  // output 요소는 role=status 라 화면의 안내 문구와 겹친다. 의미 없는 span 으로 둔다
+  return <span data-testid="location">{location.pathname + location.search}</span>
 }
 
 // 앱과 같은 공급자(Query·Router·Auth)로 감싸 그린다. 재시도는 꺼서 실패가 바로 보이게 한다
