@@ -143,6 +143,29 @@ describe('목록에서 북마크', () => {
     expect(await within(card('커피 엑스포')).findByRole('button', { name: '북마크 해제' })).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('첫 목록 응답이 오기 전에 로그인 복구가 끝나도 토큰을 붙여 다시 받는다', async () => {
+    // 순서: 목록 요청(토큰 없음) 시작 → 복구 끝 → 토큰 없는 목록 응답 도착
+    let restore
+    let releaseAnonymous
+    server.use(
+      http.post(`${API}/auth/refresh`, () => new Promise((r) => (restore = () => r(json({ access_token: 'a', user: { id: 1, nickname: '나', role: 'user' } }))))),
+      http.get(`${API}/fairs`, ({ request }) => {
+        const authed = request.headers.has('Authorization')
+        const body = json(page([makeFair({ id: 78, title: '느린 목록', is_bookmarked: authed })]))
+        return authed ? body : new Promise((r) => (releaseAnonymous = () => r(body)))
+      }),
+    )
+    renderList()
+    await waitFor(() => expect(releaseAnonymous).toBeTypeOf('function'))
+
+    restore()
+    await new Promise((r) => setTimeout(r, 50)) // 복구 처리가 끝날 시간
+    releaseAnonymous()
+
+    await screen.findByText('느린 목록')
+    expect(await within(card('느린 목록')).findByRole('button', { name: '북마크 해제' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('북마크 해제는 DELETE 로 보낸다', async () => {
     loggedInAs()
     const fair = makeFair({ title: '커피 엑스포', is_bookmarked: true })
