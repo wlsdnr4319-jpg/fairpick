@@ -1,42 +1,13 @@
 import { expect, test } from '@playwright/test'
+import { logout, newAccount, openFairByTitle, responseOf, signup } from './helpers'
 
 // 회원 흐름 (F-06 회원, F-07 북마크): 가입 → 북마크 → 새로고침해도 로그인 유지 → 마이페이지 → 로그아웃
 
-// 테스트마다 새 계정 (같은 DB 를 쓰는 다른 테스트·화면 크기와 겹치지 않게)
-function newAccount(testInfo) {
-  const id = `${testInfo.project.name}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
-  return { email: `e2e-${id}@example.com`, password: 'e2e-password-1', nickname: `테스터${id.slice(-4)}` }
-}
-
-async function signup(page, account) {
-  await page.goto('/signup')
-  await page.getByLabel('이메일').fill(account.email)
-  await page.getByLabel('비밀번호 (8자 이상)').fill(account.password)
-  await page.getByLabel('닉네임').fill(account.nickname)
-  await page.getByLabel('만 14세 이상입니다').check()
-  await page.getByRole('button', { name: '가입하기' }).click()
-  // 비밀번호 해시(Argon2)를 가입·로그인에서 두 번 하므로 느린 PC 에선 몇 초 걸린다
-  await expect(page).toHaveURL('/', { timeout: 20_000 })
-  await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible()
-}
-
-// 로그아웃 요청이 끝나기 전에 이동하면 아직 로그인 상태라 로그인 화면이 홈으로 돌려보낸다
-async function logout(page) {
-  await page.getByRole('button', { name: '로그아웃' }).click()
-  await expect(page.getByRole('link', { name: '로그인' })).toBeVisible()
-}
-
 // 북마크 요청이 서버에 닿을 때까지 기다린다 (화면은 낙관적 업데이트로 먼저 바뀌므로 화면만 보고 새로고침하면 요청이 끊긴다)
-const bookmarkSaved = (page, method) =>
-  page.waitForResponse((r) => r.url().endsWith('/bookmark') && r.request().method() === method && r.ok())
+const bookmarkSaved = (page, method) => responseOf(page, method, '/bookmark')
 
 const TITLE = '서울커피엑스포 2026'
-
-async function openFair(page, title = TITLE) {
-  await page.goto(`/fairs?q=${encodeURIComponent('서울커피엑스포')}`)
-  await page.getByRole('heading', { name: title }).click()
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
-}
+const openFair = (page) => openFairByTitle(page, TITLE, '서울커피엑스포')
 
 test('가입하고 북마크하면 마이페이지에 모이고, 해제하면 빠진다', async ({ page }, testInfo) => {
   const account = newAccount(testInfo)

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { createFair, fetchAdminFair, updateFair } from '../../api/admin'
 import { errorMessage } from '../../api/client'
 import { useCategories, useTags, useVenues } from '../../hooks/useFairs'
@@ -84,7 +84,9 @@ function FairForm({ fairId, existing }) {
   const { data: venues = [] } = useVenues()
   const { data: tags = [] } = useTags()
   const [form, setForm] = useState(() => (existing ? toForm(existing) : EMPTY))
-  const [message, setMessage] = useState('')
+  // 새로 등록하면 수정 화면으로 옮기며 폼을 새로 그리므로, '저장했어요' 는 이동 상태(state)로 넘겨 받는다
+  const location = useLocation()
+  const [message, setMessage] = useState(location.state?.saved ? '저장했어요' : '')
 
   const save = useMutation({
     mutationFn: () => (isNew ? createFair(toBody(form)) : updateFair(fairId, toBody(form))),
@@ -93,7 +95,7 @@ function FairForm({ fairId, existing }) {
       qc.invalidateQueries({ queryKey: ['fairs'] })
       qc.invalidateQueries({ queryKey: ['fair', String(saved.id)] })
       setMessage('저장했어요')
-      if (isNew) navigate(`/admin/fairs/${saved.id}/edit`, { replace: true })
+      if (isNew) navigate(`/admin/fairs/${saved.id}/edit`, { replace: true, state: { saved: true } })
       else setForm(toForm(saved))
     },
     onError: (err) => setMessage(errorMessage(err)),
