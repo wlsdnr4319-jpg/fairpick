@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 
+from app.core.deps import get_now
 from app.core.security import create_access_token
 from tests import factories as f
 
@@ -63,7 +64,19 @@ def test_expired_and_invalid_access_token(db, client):
     assert res.status_code == 401 and res.json()["error"]["code"] == "UNAUTHORIZED"
 
 
-def test_refresh_rotates_and_detects_reuse(db, client):
+class Clock:
+    """요청마다 쓰는 '지금'을 테스트에서 옮긴다 (리프레시 재사용 유예 시간 확인용)."""
+
+    def __init__(self, app):
+        self.now = datetime(2026, 11, 13, 3, 0)
+        app.dependency_overrides[get_now] = lambda: self.now
+
+    def advance(self, seconds):
+        self.now += timedelta(seconds=seconds)
+
+
+def test_refresh_rotates_and_detects_reuse(db, client, app):
+    clock = Clock(app)
     _signup_and_login(client)
     first_cookie = client.cookies.get("refresh_token")
 
@@ -72,12 +85,62 @@ def test_refresh_rotates_and_detects_reuse(db, client):
     second_cookie = client.cookies.get("refresh_token")
     assert second_cookie and second_cookie != first_cookie
 
-    # 이미 폐기된 첫 번째 토큰을 다시 쓰면 탈취로 보고 모든 토큰을 폐기한다
+    # 유예 시간(30초)이 지난 뒤 폐기된 첫 번째 토큰을 다시 쓰면 탈취로 보고 모든 토큰을 폐기한다
+    clock.advance(31)
     _use_cookie(client, first_cookie)
     assert client.post("/api/v1/auth/refresh").status_code == 401
     _use_cookie(client, second_cookie)
     res = client.post("/api/v1/auth/refresh")
     assert res.status_code == 401 and res.json()["error"]["code"] == "INVALID_REFRESH_TOKEN"
+
+
+def _refresh_with(client, token):
+    """그 토큰으로 재발급을 요청하고 (응답, 새 토큰)을 돌려준다. 쿠키 저장소 대신 응답의 Set-Cookie 를 읽는다."""
+    _use_cookie(client, token)
+    res = client.post("/api/v1/auth/refresh")
+    client.cookies.clear()
+    return res, res.cookies.get("refresh_token")
+
+
+def test_refresh_response_lost_is_tolerated_within_grace(db, client, app):
+    """재발급 중 페이지를 옮겨 새 쿠키를 못 받은 브라우저가 이전 토큰을 다시 보내는 경우 (E2E 로 발견)."""
+    clock = Clock(app)
+    first = _signup_and_login(client).cookies.get("refresh_token")
+    res, lost = _refresh_with(client, first)  # 브라우저는 이 응답(새 쿠키)을 받지 못했다고 가정
+    assert res.status_code == 200
+
+    clock.advance(5)
+    res, third = _refresh_with(client, first)
+    assert res.status_code == 200, res.text
+    assert third not in (first, lost)
+
+    # 받지 못한 토큰(lost)은 그때 폐기됐다. 유예 시간이 지나 그걸 쓰면 다시 탈취 의심으로 모두 폐기한다
+    clock.advance(31)
+    assert _refresh_with(client, lost)[0].status_code == 401
+    assert _refresh_with(client, third)[0].status_code == 401
+
+
+def test_refresh_grace_chain_keeps_working(db, client, app):
+    """끊긴 뒤 다시 받은 토큰으로 계속 재발급할 수 있다."""
+    clock = Clock(app)
+    first = _signup_and_login(client).cookies.get("refresh_token")
+    _refresh_with(client, first)
+    clock.advance(5)
+    _, third = _refresh_with(client, first)
+    clock.advance(60)
+    res, fourth = _refresh_with(client, third)
+    assert res.status_code == 200 and fourth
+
+
+def test_refresh_grace_does_not_undo_logout(db, client, app):
+    """로그아웃한 뒤에는 유예 시간 안이라도 이전 토큰으로 다시 로그인되지 않는다."""
+    Clock(app)
+    first = _signup_and_login(client).cookies.get("refresh_token")
+    _, second = _refresh_with(client, first)
+    _use_cookie(client, second)
+    assert client.post("/api/v1/auth/logout").status_code == 204
+
+    assert _refresh_with(client, first)[0].status_code == 401
 
 
 def test_logout_revokes_refresh_token(db, client):

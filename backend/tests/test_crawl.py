@@ -130,6 +130,50 @@ def test_review_queue_approve_creates_crawler_fair(db, client, source, admin_h):
     assert again.status_code == 409 and again.json()["error"]["code"] == "ALREADY_REVIEWED"
 
 
+def test_approve_unmatched_venue_learns_alias(db, client, source, admin_h):
+    """장소를 못 맞춘 항목: 전시장을 골라 승인하면 원본 장소를 별칭으로 저장하고, 같은 장소 항목을 다시 맞춘다."""
+    venue_text = "삼성동 컨벤션센터 3층 E홀"
+    _run(db, source, [raw("U1", venue=venue_text), raw("U2", "와인 위크", venue=venue_text)])
+    items = _items(db)
+    assert items["U1"].parsed_venue_id is None and items["U2"].parsed_venue_id is None
+
+    body = _approve_body(source, hall="3층 E홀", venue_alias="삼성동 컨벤션센터")
+    res = client.post(f"/api/v1/admin/crawled-items/{items['U1'].id}/approve", json=body, headers=admin_h)
+
+    assert res.status_code == 200, res.text
+    assert res.json()["venue_id"] == source.venue_id
+    assert items["U1"].parsed_venue_id == source.venue_id
+    alias = db.scalar(select(VenueAlias).where(VenueAlias.alias == "삼성동 컨벤션센터"))
+    assert alias.venue_id == source.venue_id
+    # 아직 검수 대기인 같은 장소 항목도 바로 맞춰진다
+    assert items["U2"].parsed_venue_id == source.venue_id
+
+    # 다음 수집부터는 별칭으로 자동 매칭 (나머지 글자는 전시홀)
+    _run(db, source, [raw("U3", "커피 쇼", venue="삼성동 컨벤션센터 1층 A홀")])
+    assert _items(db)["U3"].parsed_venue_id == source.venue_id
+
+
+def test_approve_alias_of_another_venue_is_rejected(db, client, source, admin_h):
+    other = f.venue(db, name="킨텍스")
+    _run(db, source, [raw("U1", venue="알 수 없는 홀")])
+    item = _items(db)["U1"]
+
+    # 'COEX' 는 이미 코엑스의 별칭: 다른 전시장 별칭으로 저장하지 않고 박람회도 만들지 않는다
+    body = _approve_body(source, venue_id=other.id, venue_alias="COEX")
+    res = client.post(f"/api/v1/admin/crawled-items/{item.id}/approve", json=body, headers=admin_h)
+
+    assert res.status_code == 409 and res.json()["error"]["code"] == "ALIAS_TAKEN"
+    assert item.review_status == "pending" and item.fair_id is None
+
+
+def test_approve_same_alias_twice_is_fine(db, client, source, admin_h):
+    _run(db, source, [raw("U1", venue="COEX")])
+    item = _items(db)["U1"]
+    body = _approve_body(source, venue_alias="COEX")
+    res = client.post(f"/api/v1/admin/crawled-items/{item.id}/approve", json=body, headers=admin_h)
+    assert res.status_code == 200, res.text  # 같은 전시장의 이미 있는 별칭이면 그대로 둔다
+
+
 def test_merge_candidates_and_merge(db, client, source, admin_h):
     existing = f.fair(
         db,

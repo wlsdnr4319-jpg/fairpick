@@ -55,22 +55,46 @@ def authenticate(db: Session, *, email: str, password: str) -> User:
     return user
 
 
-def issue_refresh_token(db: Session, user: User, now: datetime) -> str:
+def _issue(db: Session, user: User, now: datetime) -> tuple[str, RefreshToken]:
     token = new_refresh_token()
-    db.add(
-        RefreshToken(
-            user_id=user.id,
-            token_hash=hash_token(token),
-            expires_at=now + timedelta(days=get_settings().refresh_token_days),
-            created_at=now,
-        )
+    row = RefreshToken(
+        user_id=user.id,
+        token_hash=hash_token(token),
+        expires_at=now + timedelta(days=get_settings().refresh_token_days),
+        created_at=now,
     )
+    db.add(row)
     db.flush()
-    return token
+    return token, row
+
+
+def issue_refresh_token(db: Session, user: User, now: datetime) -> str:
+    return _issue(db, user, now)[0]
+
+
+def _active_successor(db: Session, row: RefreshToken) -> RefreshToken | None:
+    """회전으로 이어진 다음 토큰들을 따라가 아직 살아 있는 토큰을 찾는다 (로그아웃·탈취 폐기면 None)."""
+    current = row
+    for _ in range(5):  # 유예 시간 안에 여러 번 끊긴 경우까지. 무한 루프 방지
+        if current.replaced_by_id is None:
+            return None
+        current = db.get(RefreshToken, current.replaced_by_id)
+        if current is None:
+            return None
+        if current.revoked_at is None:
+            return current
+    return None
 
 
 def rotate_refresh_token(db: Session, token: str | None, now: datetime) -> tuple[User, str]:
-    """유효한 리프레시 토큰이면 폐기하고 새 토큰을 발급한다."""
+    """
+    유효한 리프레시 토큰이면 폐기하고 새 토큰을 발급한다 (회전).
+
+    폐기된 토큰이 다시 오면 원래는 탈취로 보고 모든 토큰을 폐기한다. 단, 회전 직후 유예 시간 안이고
+    그때 발급한 새 토큰이 아직 살아 있으면 '응답이 끊겨 새 쿠키를 못 받은 브라우저'로 본다
+    (재발급 요청 중에 페이지를 옮기면 생긴다. E2E 로 발견). 이때는 그 새 토큰을 폐기하고 다시 발급한다.
+    로그아웃했거나 이미 탈취로 폐기한 경우는 살아 있는 새 토큰이 없으므로 유예하지 않는다.
+    """
     if not token:
         raise AppError(401, "INVALID_REFRESH_TOKEN", "다시 로그인해 주세요")
 
@@ -79,14 +103,19 @@ def rotate_refresh_token(db: Session, token: str | None, now: datetime) -> tuple
         raise AppError(401, "INVALID_REFRESH_TOKEN", "다시 로그인해 주세요")
 
     if row.revoked_at is not None:
-        # 폐기된 토큰 재사용 = 탈취 의심 → 이 사용자의 모든 리프레시 토큰 폐기
-        revoke_all(db, row.user_id, now)
-        db.commit()
-        raise AppError(401, "INVALID_REFRESH_TOKEN", "다시 로그인해 주세요")
+        grace = timedelta(seconds=get_settings().refresh_reuse_grace_seconds)
+        successor = _active_successor(db, row) if now - row.revoked_at <= grace else None
+        if successor is None:
+            # 폐기된 토큰 재사용 = 탈취 의심 → 이 사용자의 모든 리프레시 토큰 폐기
+            revoke_all(db, row.user_id, now)
+            db.commit()
+            raise AppError(401, "INVALID_REFRESH_TOKEN", "다시 로그인해 주세요")
+        row = successor  # 브라우저가 받지 못한 새 토큰을 대신 회전한다
 
     row.revoked_at = now
     user = db.get(User, row.user_id)
-    new_token = issue_refresh_token(db, user, now)
+    new_token, new_row = _issue(db, user, now)
+    row.replaced_by_id = new_row.id
     return user, new_token
 
 

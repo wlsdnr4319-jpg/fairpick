@@ -2,7 +2,7 @@
 수집 검수 관리자 API (레퍼런스 7장 '관리자', F-09·F-10·F-18).
 
 GET  /api/v1/admin/crawled-items?review_status=pending   검수 큐 (병합 후보 포함)
-POST /api/v1/admin/crawled-items/{item_id}/approve       승인해 새 박람회 생성
+POST /api/v1/admin/crawled-items/{item_id}/approve       승인해 새 박람회 생성 (venue_alias 를 주면 장소 별칭도 저장)
 POST /api/v1/admin/crawled-items/{item_id}/merge         기존 박람회에 병합 (body: fair_id)
 POST /api/v1/admin/crawled-items/{item_id}/reject        반려
 GET  /api/v1/admin/crawl-sources                         수집 소스
@@ -24,7 +24,7 @@ from app.schemas.admin import AdminFair
 from app.schemas.crawl import ApproveIn, CrawledItemOut, CrawlRunOut, CrawlSourceOut, MergeCandidate, MergeIn
 from app.schemas.fair import Page
 from app.services import admin_fairs
-from app.services.crawl import merge_candidates, run_source
+from app.services.crawl import learn_alias, merge_candidates, run_source
 
 router = APIRouter(prefix="/admin", tags=["admin-crawl"])
 ItemId = Annotated[int, Path(ge=1)]
@@ -106,9 +106,14 @@ def approve(_: CurrentAdmin, db: DbSession, now: Now, item_id: ItemId, body: App
         return admin_fairs.to_admin(db, item.fair_id)
     if body is None:
         raise AppError(422, "VALIDATION_ERROR", "새 박람회로 승인하려면 박람회 정보가 필요해요")
-    fair = admin_fairs.create(db, body, now)
+    if body.venue_alias:
+        # 별칭이 다른 전시장과 겹치면(409) 박람회를 만들기 전에 멈춘다
+        learn_alias(db, body.venue_alias, body.venue_id)
+    fair = admin_fairs.create(db, body.fair_fields(), now)
     fair.source = "crawler"
     item.fair_id = fair.id
+    if item.parsed_venue_id is None:
+        item.parsed_venue_id = body.venue_id  # 관리자가 고른 전시장
     item.review_status = "approved"
     db.commit()
     return admin_fairs.to_admin(db, fair.id)

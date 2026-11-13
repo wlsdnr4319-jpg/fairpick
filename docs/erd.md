@@ -31,6 +31,7 @@ erDiagram
         char token_hash UK "SHA-256"
         datetime expires_at
         datetime revoked_at "NULL"
+        bigint replaced_by_id FK "NULL, 회전으로 대신 발급한 토큰"
     }
     venues {
         bigint id PK

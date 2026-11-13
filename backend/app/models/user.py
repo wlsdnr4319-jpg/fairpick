@@ -43,6 +43,8 @@ class RefreshToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime)  # 회전·로그아웃 시 채운다
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    # 회전으로 이 토큰 대신 발급한 새 토큰. 새 쿠키를 담은 응답이 끊긴 경우(페이지 이동 등)를 가려내는 데 쓴다
+    replaced_by_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("refresh_tokens.id", ondelete="SET NULL"))
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")
 
