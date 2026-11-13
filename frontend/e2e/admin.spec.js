@@ -87,6 +87,26 @@ test('수집 항목을 검수해 승인하면 공개되고, 반려하면 큐에�
   await expect(page.getByText('코엑스 C홀 · 서울')).toBeVisible() // 원본 장소의 홀이 채워짐
 })
 
+test('장소를 못 맞춘 수집 항목은 전시장을 골라 승인하고, 그 장소 이름이 별칭으로 남는다', async ({ page }, testInfo) => {
+  const title = `E2E 수집 장소 미확인 행사 (${testInfo.project.name})`
+  await login(page, ADMIN)
+  await page.goto('/admin/review')
+
+  const item = page.getByRole('listitem').filter({ has: page.getByText(title, { exact: true }) })
+  await expect(item).toContainText('매칭 실패')
+  await item.getByRole('button', { name: '정보 채우고 승인' }).click()
+  await item.getByLabel('카테고리').selectOption({ label: '문화·예술' })
+  await expect(item.getByRole('button', { name: '승인해 공개' })).toBeDisabled()
+  await expect(item.getByLabel('별칭', { exact: true })).toHaveValue(`E2E 컨벤션홀 ${testInfo.project.name}`)
+  await item.getByLabel('전시장').selectOption({ label: 'SETEC (서울)' })
+  await item.getByRole('button', { name: '승인해 공개' }).click()
+  await expect(page.getByRole('listitem').filter({ has: page.getByText(title, { exact: true }) })).toHaveCount(0)
+
+  await page.goto(`/fairs?q=${encodeURIComponent('장소 미확인')}`)
+  await page.getByRole('heading', { name: title }).click()
+  await expect(page.getByText('SETEC · 서울')).toBeVisible()
+})
+
 test('일반 회원은 관리자 화면을 쓸 수 없다', async ({ page }, testInfo) => {
   await signup(page, newAccount(testInfo, 'user'))
   await expect(page.getByRole('link', { name: '관리자' })).toHaveCount(0)
