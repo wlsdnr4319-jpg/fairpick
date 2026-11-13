@@ -4,7 +4,7 @@
 
 | 층 | 도구 | 어디서 | 개수 | 무엇을 |
 | --- | --- | --- | --- | --- |
-| 백엔드 | pytest + MySQL 8.4 | `backend/tests/` | 216 | API·서비스·파서·정규화. 테스트마다 트랜잭션 롤백 |
+| 백엔드 | pytest + MySQL 8.4 | `backend/tests/` | 222 | API·서비스·파서·정규화. 테스트마다 트랜잭션 롤백 |
 | 프론트 단위·컴포넌트 | Vitest + Testing Library + MSW | `frontend/src/**/*.test.js(x)` | 144 | 포맷 함수, 토큰 재발급, 위치 훅, 화면(홈·목록·캘린더·통계·로그인·가드·비밀번호 재설정·알림 설정·탈퇴·관리자 등록·수집 검수·관람 노트·후기·태그 투표). API 는 MSW 가짜 응답 |
 | E2E | Playwright (Chromium) | `frontend/e2e/` | 19 시나리오 × 2 화면 | 실제 API + MySQL + 빌드한 프론트. 데스크톱과 모바일(Pixel 7) 화면 |
 
