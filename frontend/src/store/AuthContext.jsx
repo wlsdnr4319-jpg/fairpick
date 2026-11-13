@@ -14,10 +14,15 @@ export function AuthProvider({ children }) {
   // 새로고침하면 메모리의 토큰이 사라지므로 /auth/refresh 를 한 번 호출해 로그인 상태를 복구한다
   useEffect(() => {
     refreshAccessToken()
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        setUser(data.user)
+        // 복구가 끝나기 전에 화면이 비로그인으로 받아 둔 데이터(북마크 여부 등)를 다시 받는다.
+        // 이게 없으면 새로고침 직후 북마크한 박람회가 북마크 안 된 것처럼 보인다 (E2E 로 발견)
+        queryClient.invalidateQueries()
+      })
       .catch(() => setUser(null))
       .finally(() => setReady(true))
-  }, [])
+  }, [queryClient])
 
   // 재발급이 실패해 토큰이 지워지면 로그아웃 상태로 바꾼다
   useEffect(() => onAccessTokenChange((token) => !token && setUser(null)), [])
