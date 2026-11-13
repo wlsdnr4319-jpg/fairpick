@@ -71,6 +71,7 @@ export function MyVisit({ fairId }) {
   const remove = useMutation({
     mutationFn: () => eng.deleteVisit(mine.id),
     onSuccess: () => {
+      setEditing(false) // 지운 뒤에도 고치기 폼이 열려 있으면 '삭제' 버튼만 사라진 빈 폼이 남는다
       qc.invalidateQueries({ queryKey: ['my-visits'] })
       qc.invalidateQueries({ queryKey: ['reviews', fairId] })
     },
