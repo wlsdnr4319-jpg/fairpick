@@ -36,9 +36,11 @@ CREATE TABLE refresh_tokens (
     expires_at  DATETIME  NOT NULL,
     revoked_at  DATETIME  NULL,                          -- 회전·로그아웃 시 채운다
     created_at  DATETIME  NOT NULL,
+    replaced_by_id BIGINT NULL,                          -- 회전으로 대신 발급한 토큰 (응답이 끊긴 재발급 유예 판단, 2026-11-13 추가)
     PRIMARY KEY (id),
     UNIQUE KEY uq_refresh_tokens_hash (token_hash),
-    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_refresh_tokens_replaced_by FOREIGN KEY (replaced_by_id) REFERENCES refresh_tokens (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ---------------------------------------------------------------------------

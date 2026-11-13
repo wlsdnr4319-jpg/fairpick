@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-only-secret-change-me"
     access_token_minutes: int = 30
     refresh_token_days: int = 14
+    # 회전 직후 응답이 끊겨 새 쿠키를 못 받은 브라우저가 이전 토큰을 다시 보내도, 이 시간(초) 안이면 탈취로 보지 않는다
+    refresh_reuse_grace_seconds: int = 30
     # 운영(HTTPS)에서는 true. 개발 서버(http://localhost)에서는 Secure 쿠키가 저장되지 않아 false
     cookie_secure: bool = False
 
