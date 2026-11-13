@@ -186,7 +186,8 @@ function DeadlineSection() {
               <li key={f.id}>
                 <Link to={`/fairs/${f.id}`} className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-gray-50">
                   <span className="w-14 shrink-0 rounded-md bg-red-50 py-1 text-center text-sm font-bold text-red-600">
-                    {d === 0 ? '오늘' : `D-${d}`}
+                    {/* 받아 둔 목록을 보는 사이 마감 시각이 지나면 d 가 null 이다 ('D-null' 로 보이던 문제) */}
+                    {d == null ? '마감' : d === 0 ? '오늘' : `D-${d}`}
                   </span>
                   <span className="flex-1 truncate">{f.title}</span>
                   <span className="text-xs text-gray-500">{formatDateTime(f.prereg_end_at)} 마감</span>

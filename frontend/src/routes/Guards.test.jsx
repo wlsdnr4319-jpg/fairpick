@@ -1,9 +1,30 @@
-import { screen } from '@testing-library/react'
-import { Route } from 'react-router-dom'
+import { act, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { http } from 'msw'
+import { Route, useNavigate } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import { loggedInAs, USER } from '../test/server'
+import { setAccessToken } from '../store/auth'
+import { useAuth } from '../store/AuthContext'
+import { API, json, loggedInAs, server, USER } from '../test/server'
 import { currentLocation, renderApp } from '../test/render'
 import { AdminRoute, GuestOnlyRoute, ProtectedRoute } from './Guards'
+
+// 헤더의 로그아웃 버튼과 같은 순서 (components/Layout.jsx)
+function LogoutButton() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await logout()
+        navigate('/')
+      }}
+    >
+      로그아웃
+    </button>
+  )
+}
 
 const routes = (
   <>
@@ -13,7 +34,15 @@ const routes = (
       <Route path="/signup" element={<p>가입 화면</p>} />
     </Route>
     <Route element={<ProtectedRoute />}>
-      <Route path="/mypage" element={<p>마이페이지</p>} />
+      <Route
+        path="/mypage"
+        element={
+          <>
+            <p>마이페이지</p>
+            <LogoutButton />
+          </>
+        }
+      />
     </Route>
     <Route element={<AdminRoute />}>
       <Route path="/admin" element={<p>관리자 화면</p>} />
@@ -39,6 +68,25 @@ describe('ProtectedRoute', () => {
     renderApp(routes, { route: '/mypage?tab=2' })
     expect(await screen.findByText('로그인 화면')).toBeInTheDocument()
     expect(currentLocation(screen)).toBe('/login?next=%2Fmypage%3Ftab%3D2')
+  })
+
+  it('보호된 화면에서 직접 로그아웃하면 로그인 화면이 아니라 홈으로', async () => {
+    // 주소 변경(transition)보다 사용자 상태가 먼저 그려져 /login?next=/mypage 로 새던 문제
+    loggedInAs()
+    server.use(http.post(`${API}/auth/logout`, () => json({})))
+    renderApp(routes, { route: '/mypage' })
+    await userEvent.click(await screen.findByRole('button', { name: '로그아웃' }))
+    expect(await screen.findByText('홈')).toBeInTheDocument()
+    expect(currentLocation(screen)).toBe('/')
+  })
+
+  it('로그인이 만료돼 풀리면 돌아올 주소를 붙여 로그인 화면으로', async () => {
+    loggedInAs()
+    renderApp(routes, { route: '/mypage' })
+    await screen.findByText('마이페이지')
+    act(() => setAccessToken(null)) // 재발급 실패 때 api/client 가 하는 일
+    expect(await screen.findByText('로그인 화면')).toBeInTheDocument()
+    expect(currentLocation(screen)).toBe('/login?next=%2Fmypage')
   })
 })
 
