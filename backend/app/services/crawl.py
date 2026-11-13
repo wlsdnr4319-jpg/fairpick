@@ -16,6 +16,7 @@ from difflib import SequenceMatcher
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError
 from app.crawlers.base import BaseParser, RawFair
 from app.crawlers.http import PoliteClient
 from app.crawlers.normalize import PeriodParseError, content_hash, match_venue, parse_period
@@ -41,6 +42,30 @@ def alias_map(db: Session) -> dict[str, int]:
     aliases = {v.name: v.id for v in db.scalars(select(Venue))}
     aliases.update({a.alias: a.venue_id for a in db.scalars(select(VenueAlias))})
     return aliases
+
+
+def learn_alias(db: Session, alias: str, venue_id: int) -> int:
+    """
+    장소를 못 맞춘 항목을 관리자가 전시장을 골라 승인할 때: 원본 장소 문자열을 그 전시장의 별칭으로 저장한다.
+    다음 수집부터 자동으로 맞춰지고, 지금 검수 대기 중인 같은 장소 항목도 바로 다시 맞춘다. 다시 맞춘 개수를 돌려준다.
+    """
+    alias = alias.strip()
+    existing = db.scalar(select(VenueAlias).where(VenueAlias.alias == alias))
+    if existing is not None and existing.venue_id != venue_id:
+        raise AppError(409, "ALIAS_TAKEN", f"'{alias}' 는 이미 다른 전시장의 별칭이에요")
+    if existing is None:
+        db.add(VenueAlias(venue_id=venue_id, alias=alias))
+        db.flush()
+
+    aliases = alias_map(db)
+    rematched = 0
+    unmatched = select(CrawledItem).where(CrawledItem.review_status == "pending", CrawledItem.parsed_venue_id.is_(None))
+    for item in db.scalars(unmatched):
+        matched, _hall = match_venue(item.raw_venue or "", aliases)
+        if matched is not None:
+            item.parsed_venue_id = matched
+            rematched += 1
+    return rematched
 
 
 def upsert_item(

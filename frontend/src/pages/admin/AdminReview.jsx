@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../../api/client'
-import { useCategories, useTags } from '../../hooks/useFairs'
+import { useCategories, useTags, useVenues } from '../../hooks/useFairs'
 
 // 수집 검수 (레퍼런스 4장 /admin/review, F-10)
 // 수집된 항목마다 원본 텍스트와 정규화 결과를 나란히 보여주고, 관리자가 일반인 관람 여부·입장료·태그·관람 팁을 채운 뒤 승인한다.
@@ -64,7 +64,13 @@ function Sources({ onRun }) {
 function ReviewItem({ item, onDone }) {
   const { data: categories = [] } = useCategories()
   const { data: tags = [] } = useTags()
+  const { data: venues = [] } = useVenues()
   const [open, setOpen] = useState(false)
+  // 장소를 못 맞춘 항목은 관리자가 전시장을 고른다. 원본 장소 문자열을 별칭으로 저장하면 다음 수집부터 자동으로 맞춰진다
+  const unmatched = !item.parsed_venue_id
+  const [venueId, setVenueId] = useState('')
+  const [saveAlias, setSaveAlias] = useState(true)
+  const [alias, setAlias] = useState(item.raw_venue ?? '')
   const [error, setError] = useState('')
   const hall = item.raw_payload?.extra?.hall ?? ''
   const [form, setForm] = useState({
@@ -96,7 +102,14 @@ function ReviewItem({ item, onDone }) {
       kind: 'approve',
       body: item.fair_id
         ? undefined
-        : { ...form, venue_id: item.parsed_venue_id, price_onsite: num(form.price_onsite), price_prereg: num(form.price_prereg), official_url: form.official_url || null },
+        : {
+            ...form,
+            venue_id: unmatched ? Number(venueId) : item.parsed_venue_id,
+            venue_alias: unmatched && saveAlias && alias.trim() ? alias.trim() : null,
+            price_onsite: num(form.price_onsite),
+            price_prereg: num(form.price_prereg),
+            official_url: form.official_url || null,
+          },
     })
   }
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
@@ -121,7 +134,7 @@ function ReviewItem({ item, onDone }) {
         <div className="text-sm">
           <p className="mb-1 text-xs font-semibold text-gray-500">정규화 결과</p>
           <p>기간: {item.parsed_start_date ? `${item.parsed_start_date} ~ ${item.parsed_end_date}` : <b className="text-red-600">읽지 못함 (직접 입력)</b>}</p>
-          <p>장소: {item.parsed_venue_name ?? <b className="text-red-600">매칭 실패</b>}</p>
+          <p>장소: {item.parsed_venue_name ?? <b className="text-red-600">매칭 실패 (승인할 때 전시장 선택)</b>}</p>
           {item.fair_id && <p>연결된 박람회: <Link className="underline" to={`/admin/fairs/${item.fair_id}/edit`}>#{item.fair_id}</Link></p>}
           {item.merge_candidates.length > 0 && (
             <div className="mt-2 rounded bg-amber-50 p-2">
@@ -142,6 +155,22 @@ function ReviewItem({ item, onDone }) {
       {open && !item.fair_id && (
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
           <input className={`${input} sm:col-span-3`} value={form.title} onChange={set('title')} aria-label="제목" />
+          {unmatched && (
+            <div className="space-y-2 rounded bg-red-50 p-2 sm:col-span-3">
+              <select className={input} value={venueId} onChange={(e) => setVenueId(e.target.value)} aria-label="전시장">
+                <option value="">전시장 선택 (원본: {item.raw_venue || '없음'})</option>
+                {venues.map((v) => <option key={v.id} value={v.id}>{v.name} ({v.region})</option>)}
+              </select>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={saveAlias} onChange={(e) => setSaveAlias(e.target.checked)} />
+                이 장소 이름을 별칭으로 저장 (다음 수집부터 자동으로 맞춤)
+              </label>
+              {saveAlias && (
+                <input className={input} value={alias} onChange={(e) => setAlias(e.target.value)} maxLength={100} aria-label="별칭" />
+              )}
+              <p className="text-xs text-gray-500">별칭은 장소 이름의 앞부분만 남기세요. 뒤에 붙은 글자는 전시홀로 읽어요 (예: 별칭 '삼성동 컨벤션센터' → '삼성동 컨벤션센터 3층 E홀' 의 홀은 '3층 E홀')</p>
+            </div>
+          )}
           <select className={input} value={form.category} onChange={set('category')} aria-label="카테고리">
             <option value="">카테고리 선택</option>
             {categories.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
@@ -181,7 +210,7 @@ function ReviewItem({ item, onDone }) {
           </button>
         )}
         {(open || item.fair_id) && (
-          <button type="button" disabled={act.isPending || (!item.fair_id && (!form.category || !item.parsed_venue_id))} className="min-h-10 rounded bg-indigo-600 px-3 text-sm text-white disabled:opacity-50" onClick={approve}>
+          <button type="button" disabled={act.isPending || (!item.fair_id && (!form.category || (unmatched && !venueId)))} className="min-h-10 rounded bg-indigo-600 px-3 text-sm text-white disabled:opacity-50" onClick={approve}>
             {item.fair_id ? '변경 확인' : '승인해 공개'}
           </button>
         )}

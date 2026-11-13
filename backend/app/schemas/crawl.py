@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.admin import FairCreate
 
@@ -37,6 +37,12 @@ class CrawledItemOut(BaseModel):
 
 class ApproveIn(FairCreate):
     """승인: 관리자가 일반인 관람 여부·입장료·태그·관람 팁을 채운 뒤 새 박람회를 만든다."""
+
+    # 장소를 못 맞춘 항목에서 관리자가 전시장을 골랐을 때, 원본 장소 문자열을 그 전시장의 별칭으로 저장한다
+    venue_alias: str | None = Field(default=None, min_length=1, max_length=100)
+
+    def fair_fields(self) -> FairCreate:
+        return FairCreate.model_validate(self.model_dump(exclude={"venue_alias"}))
 
 
 class MergeIn(BaseModel):

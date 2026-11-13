@@ -47,6 +47,7 @@ beforeEach(() => {
   server.use(
     http.get(`${API}/categories`, () => json([{ code: 'food', name: '식음료' }])),
     http.get(`${API}/tags`, () => json([{ slug: 'date', name: '데이트 추천' }])),
+    http.get(`${API}/venues`, () => json([{ id: 3, name: '코엑스', region: '서울' }])),
   )
 })
 
@@ -85,6 +86,7 @@ describe('수집 검수', () => {
         title: '디저트 페어',
         category: 'food',
         venue_id: 3,
+        venue_alias: null, // 장소를 이미 맞춘 항목은 별칭을 만들지 않는다
         hall: 'C홀', // 원본의 전시홀
         start_date: '2027-03-05',
         end_date: '2027-03-07',
@@ -98,18 +100,48 @@ describe('수집 검수', () => {
     })
   })
 
-  it('장소를 찾지 못한 항목은 알려 주고 승인할 수 없다 (반려만 가능)', async () => {
-    reviewQueue([crawledItem({ parsed_venue_id: null, parsed_venue_name: null, parsed_start_date: null, parsed_end_date: null })])
+  it('장소를 못 맞춘 항목은 전시장을 골라야 승인할 수 있고, 원본 장소를 별칭으로 함께 보낸다', async () => {
+    const actions = reviewQueue([
+      crawledItem({ raw_venue: '삼성동 컨벤션센터', raw_payload: null, parsed_venue_id: null, parsed_venue_name: null }),
+    ])
     const user = userEvent.setup()
     renderReview()
     const item = await screen.findByRole('listitem')
     expect(item).toHaveTextContent('매칭 실패')
-    expect(item).toHaveTextContent('읽지 못함 (직접 입력)')
 
     await user.click(within(item).getByRole('button', { name: '정보 채우고 승인' }))
     await user.selectOptions(within(item).getByLabelText('카테고리'), await screen.findByRole('option', { name: '식음료' }))
-    expect(within(item).getByRole('button', { name: '승인해 공개' })).toBeDisabled()
-    expect(within(item).getByRole('button', { name: '반려' })).toBeEnabled()
+    const approve = within(item).getByRole('button', { name: '승인해 공개' })
+    expect(approve).toBeDisabled() // 전시장을 고르기 전
+
+    expect(within(item).getByLabelText('별칭')).toHaveValue('삼성동 컨벤션센터')
+    await user.selectOptions(within(item).getByLabelText('전시장'), await screen.findByRole('option', { name: '코엑스 (서울)' }))
+    await user.click(approve)
+
+    await waitFor(() => expect(actions).toHaveLength(1))
+    expect(actions[0].body).toMatchObject({ venue_id: 3, venue_alias: '삼성동 컨벤션센터' })
+  })
+
+  it('별칭 저장을 끄면 전시장만 보낸다', async () => {
+    const actions = reviewQueue([crawledItem({ raw_venue: '임시 행사장', parsed_venue_id: null, parsed_venue_name: null })])
+    const user = userEvent.setup()
+    renderReview()
+    const item = await screen.findByRole('listitem')
+    await user.click(within(item).getByRole('button', { name: '정보 채우고 승인' }))
+    await user.selectOptions(within(item).getByLabelText('카테고리'), await screen.findByRole('option', { name: '식음료' }))
+    await user.selectOptions(within(item).getByLabelText('전시장'), await screen.findByRole('option', { name: '코엑스 (서울)' }))
+    await user.click(within(item).getByLabelText(/별칭으로 저장/))
+    expect(within(item).queryByLabelText('별칭')).not.toBeInTheDocument()
+    await user.click(within(item).getByRole('button', { name: '승인해 공개' }))
+
+    await waitFor(() => expect(actions).toHaveLength(1))
+    expect(actions[0].body).toMatchObject({ venue_id: 3, venue_alias: null })
+  })
+
+  it('기간을 읽지 못한 항목은 알려 준다', async () => {
+    reviewQueue([crawledItem({ parsed_start_date: null, parsed_end_date: null })])
+    renderReview()
+    expect(await screen.findByRole('listitem')).toHaveTextContent('읽지 못함 (직접 입력)')
   })
 
   it('이미 박람회와 연결된 변경 항목은 본문 없이 변경 확인만 보낸다', async () => {
