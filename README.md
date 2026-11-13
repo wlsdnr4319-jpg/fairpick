@@ -92,10 +92,20 @@ erDiagram
 | IP 기준 제한을 헤더 하나로 우회 가능 | Nginx 가 클라이언트의 `X-Forwarded-For` 에 덧붙이고, uvicorn(`--forwarded-allow-ips "*"`)은 맨 앞 값을 IP 로 씀 | Nginx 에서 `$remote_addr` 로 덮어씀 |
 | 달력형 사이트에서 같은 행사가 날짜마다 따로 수집될 뻔함 | 달력은 행사가 열리는 날짜 칸마다 같은 행사를 반복해 보여줌 | 행사 ID 로 날짜를 모아 가장 이른 날 ~ 가장 늦은 날을 기간으로. 지난달 달력도 받아 달을 넘기는 행사를 합침 |
 | `"12.30 ~ 1.2"` 는 되는데 `"2026.11.22 ~ 2026.11.19"` 도 통과 | 해 넘김 규칙이 끝 연도를 명시한 경우에도 적용됨 | 끝 연도를 생략했을 때만 해 넘김으로 해석 |
+| 새로고침하면 북마크가 풀린 것처럼 보임 (E2E 로 발견) | 화면이 로그인 복구보다 먼저 비로그인으로 데이터를 받고 다시 받지 않음 | 로그인 복구가 끝나면 쿼리 무효화 |
+| 로그인 후 가끔 원래 페이지가 아닌 홈으로 감 (E2E 로 발견) | 로그인 순간 '비로그인 전용' 가드가 홈으로 보내는 것과 `navigate(next)` 가 경쟁 | 가드도 `next` 로 보냄 |
 
 ## 테스트 전략
 
-깨지기 쉬운 곳에 테스트를 모았습니다. 백엔드 **160개**, 모두 SQLite 가 아닌 **MySQL 8.4** 에서 실행합니다 (ENUM·CHECK·INSERT IGNORE·FULLTEXT 문법 차이로 테스트만 통과하는 일을 막기 위해).
+세 층으로 테스트하고, PR 마다 GitHub Actions 가 모두 실행합니다. 자세한 내용: [docs/testing.md](docs/testing.md)
+
+| 층 | 도구 | 개수 |
+| --- | --- | --- |
+| 백엔드 | pytest, **MySQL 8.4** (SQLite 가 아님) | 216 |
+| 프론트 단위·컴포넌트 | Vitest + Testing Library + MSW | 80 |
+| E2E | Playwright: 실제 API·DB·빌드한 프론트, 데스크톱·모바일 화면 | 8 시나리오 × 2 |
+
+백엔드는 ENUM·CHECK·INSERT IGNORE·FULLTEXT 문법 차이로 테스트만 통과하는 일을 막으려고 실제와 같은 MySQL 에서 돌립니다.
 
 | 대상 | 무엇을 지키나 |
 | --- | --- |
@@ -108,6 +118,17 @@ erDiagram
 | 마이그레이션 | 테스트 DB 를 매번 Alembic 으로 만들어 마이그레이션도 함께 검증 |
 
 시간에 따라 결과가 바뀌는 로직은 `today`·`now` 를 의존성으로 받아 테스트에서 날짜를 고정합니다.
+
+프론트는 **사용자가 겪는 동작**을 확인합니다.
+
+| 대상 | 무엇을 지키나 |
+| --- | --- |
+| 토큰 재발급 | 만료되면 재발급 후 원래 요청 재시도, 동시에 여러 요청이 만료돼도 재발급은 1번, 재발급 실패 시 로그아웃 |
+| 목록 | URL 쿼리 = API 쿼리(주소 공유), 필터를 바꾸면 1페이지로, 위치 없는 거리순 주소는 기본 정렬로 |
+| 북마크 | 낙관적 업데이트와 실패 시 되돌리기, 비로그인은 돌아올 주소를 붙여 로그인 화면으로 |
+| 로그인·가드 | 외부 주소로 돌려보내지 않음(오픈 리다이렉트), 로그인 후 원래 페이지, 관리자 화면 권한 |
+| 위치 | 약 1km 단위로 줄여서만 쓰고, 고정밀 위치를 요청하지 않음 |
+| E2E | 가입 → 북마크 → 새로고침해도 유지 → 마이페이지, 리프레시 쿠키가 httpOnly, 검색·필터 주소 공유 |
 
 ## 로컬 실행
 
@@ -125,12 +146,14 @@ alembic upgrade head
 python -m app.scripts.seed             # 카테고리·태그·전시장·실제 박람회 30건
 python -m app.scripts.create_admin --email 내이메일
 uvicorn app.main:app --reload --port 8000      # API 문서: http://localhost:8000/docs
-pytest                                          # 테스트
+pytest                                          # 백엔드 테스트
 
 # 프론트 (터미널 2)
 cd frontend
 npm install
 npm run dev                            # http://localhost:5173
+npm test                               # 프론트 단위 테스트
+npm run e2e                            # E2E (처음 한 번 npx playwright install chromium, docs/testing.md)
 
 # 수집·알림 워커 (선택)
 python -m app.jobs.crawl_job           # 한 번 수집
