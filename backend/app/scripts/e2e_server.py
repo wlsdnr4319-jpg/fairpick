@@ -6,7 +6,8 @@ E2E(Playwright) 테스트용 API 서버. 매번 같은 데이터에서 시작하
 
 - DB: E2E_DATABASE_URL 이 있으면 그것을, 없으면 DATABASE_URL 의 DB 이름을 fairpick_e2e 로 바꿔 쓴다.
   개발 DB(fairpick)·단위 테스트 DB(fairpick_test)와 섞이지 않게 이름이 _e2e 로 끝나는 DB 만 비운다.
-- 순서: 테이블 전부 삭제 → Alembic 마이그레이션 → 시드(카테고리·태그·전시장·박람회 30건) → uvicorn
+- 순서: 테이블 전부 삭제 → Alembic 마이그레이션 → 시드(카테고리·태그·전시장·박람회 30건)
+  → E2E 데이터(관리자 1명, 검수 대기 수집 항목 4건) → uvicorn
 """
 
 import argparse
@@ -49,6 +50,62 @@ def reset_database(url: str) -> None:
     engine.dispose()
 
 
+# E2E 에서만 쓰는 관리자 계정. 이 DB 는 매번 지워지고 로컬·CI 에서만 뜬다 (frontend/e2e/fixtures.js 와 같은 값)
+E2E_ADMIN_EMAIL = "admin@e2e.example.com"
+E2E_ADMIN_PASSWORD = "e2e-admin-password"
+
+# 검수 큐에 넣어 둘 수집 항목 (실제 사이트에 요청하지 않는다). 승인용·반려용을 화면 크기(Playwright 프로젝트)마다 1건씩.
+# 데스크톱·모바일 테스트가 같은 DB 를 쓰므로 서로의 항목을 처리하지 않게 제목에 프로젝트 이름을 붙인다
+E2E_PROJECTS = ("desktop", "mobile")
+E2E_CRAWLED = [
+    ("approve", "E2E 수집 디저트 페어", "2027.03.05 ~ 2027.03.07", (3, 5), (3, 7)),
+    ("reject", "E2E 수집 반려할 행사", "2027.04.01 ~ 2027.04.02", (4, 1), (4, 2)),
+]
+
+
+def seed_e2e_fixtures() -> None:
+    """시드 다음에 E2E 전용 데이터(관리자 1명, 코엑스 수집 항목 4건)를 넣는다."""
+    import hashlib
+    from datetime import date
+
+    from sqlalchemy import select
+
+    from app.core.security import hash_password
+    from app.db.session import SessionLocal
+    from app.models import CrawledItem, CrawlSource, User
+
+    with SessionLocal() as db:
+        admin_hash = hash_password(E2E_ADMIN_PASSWORD)
+        db.add(User(email=E2E_ADMIN_EMAIL, password_hash=admin_hash, nickname="E2E관리자", role="admin"))
+        source = db.scalar(select(CrawlSource).where(CrawlSource.parser_key == "coex"))
+        crawled = [(p, kind, f"{title} ({p})", *rest) for p in E2E_PROJECTS for kind, title, *rest in E2E_CRAWLED]
+        for project, kind, title, period, (sm, sd), (em, ed) in crawled:
+            db.add(
+                CrawledItem(
+                    source_id=source.id,
+                    external_id=f"e2e-{kind}-{project}",
+                    raw_title=title,
+                    raw_period=period,
+                    raw_venue="코엑스 C홀",
+                    # 코엑스 파서가 남기는 모양 (RawFair.to_payload). 승인 화면이 전시홀을 extra.hall 에서 채운다
+                    raw_payload={
+                        "external_id": f"e2e-{kind}-{project}",
+                        "title": title,
+                        "period_text": period,
+                        "venue_text": "코엑스 C홀",
+                        "detail_url": "",
+                        "extra": {"kind": "전시", "hall": "C홀"},
+                    },
+                    parsed_start_date=date(2027, sm, sd),
+                    parsed_end_date=date(2027, em, ed),
+                    parsed_venue_id=source.venue_id,
+                    content_hash=hashlib.sha256(f"{title}|{period}|코엑스 C홀".encode()).hexdigest(),
+                    change_status="new",
+                )
+            )
+        db.commit()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8001)
@@ -64,6 +121,7 @@ def main() -> None:
     from app.scripts import seed
 
     seed.main()
+    seed_e2e_fixtures()
 
     import uvicorn
 
