@@ -30,6 +30,9 @@ services:
     environment:
       # 컨테이너 안에서는 DB 호스트가 db 다
       DATABASE_URL: mysql+pymysql://${DB_USER}:${DB_PASSWORD}@db:3306/fairpick?charset=utf8mb4
+    volumes:
+      # 관리자가 올린 표지 이미지 (백업: deploy/backup.sh)
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -69,5 +72,6 @@ services:
 
 volumes:
   prod_db_data:
+  uploads:
   letsencrypt:
   certbot_www:

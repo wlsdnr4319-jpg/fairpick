@@ -15,7 +15,7 @@ _DT_FIELDS = ("prereg_start_at", "prereg_end_at")
 _META = {"category", "tags", "verified"}
 
 
-def _load(db: Session, fair_id: int) -> Fair:
+def load(db: Session, fair_id: int) -> Fair:
     fair = db.scalar(
         select(Fair)
         .where(Fair.id == fair_id)
@@ -100,7 +100,7 @@ _LOGGED_FIELDS = (
 
 
 def update(db: Session, fair_id: int, body: FairUpdate, now: datetime, actor_id: int | None = None) -> Fair:
-    fair = _load(db, fair_id)
+    fair = load(db, fair_id)
     data = body.model_dump(exclude_unset=True)
     before = {f: getattr(fair, f) for f in _LOGGED_FIELDS}
 
@@ -161,7 +161,7 @@ def list_all(db: Session, *, status: str | None, q: str | None, page: int, size:
 
 def to_admin(db: Session, fair_id: int) -> AdminFair:
     db.expire_all()  # 방금 바꾼 태그·수정 시각을 다시 읽는다
-    f = _load(db, fair_id)
+    f = load(db, fair_id)
     return AdminFair(
         id=f.id,
         title=f.title,

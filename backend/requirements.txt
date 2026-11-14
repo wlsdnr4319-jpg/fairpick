@@ -21,7 +21,9 @@ beautifulsoup4==4.15.0   # 수집 HTML 파싱 (6주차)
 APScheduler==3.11.3      # 워커 스케줄러 (7주차). 3.x 기준
 Jinja2==3.1.6            # 알림 메일 템플릿 (9주차)
 openpyxl==3.1.5          # 관리자 엑셀 내보내기 (13주차)
-pywebpush==2.5.0         # 웹 푸시 발송 (VAPID 서명 + 메시지 암호화)
+pywebpush==2.5.0
+Pillow==13.0.0           # 관리자 표지 이미지 검사·축소·WebP 변환 (EXIF 제거)
+python-multipart==0.0.33 # FastAPI 파일 업로드(multipart/form-data)         # 웹 푸시 발송 (VAPID 서명 + 메시지 암호화)
 httpx2==2.16.0          # FastAPI TestClient 용 (starlette 가 httpx2 를 권장)
 pytest==9.2.0
 ruff==0.17.3

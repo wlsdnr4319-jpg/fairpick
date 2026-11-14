@@ -55,6 +55,47 @@ test('박람회를 초안으로 등록 → 공개 → 숨김, 상태에 따라 �
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 })
 
+// 작은 PNG (단색 4x4). 서버가 실제로 열어 WebP 로 바꾸는지 보려고 진짜 이미지 바이트를 쓴다
+const PNG_4X4 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAE0lEQVR4nGN81mPDAANMcBZeDgBVqgG2gGEi1gAAAABJRU5ErkJggg==',
+  'base64',
+)
+
+test('표지 이미지를 올리면 공개 화면에 나오고, 지우면 일러스트로 돌아간다', async ({ page }, testInfo) => {
+  const title = `E2E 표지 박람회 ${testInfo.project.name} ${Date.now()}`
+  await login(page, ADMIN)
+  await page.goto('/admin/fairs/new')
+  await page.getByLabel('제목').fill(title)
+  await page.getByLabel('카테고리').selectOption({ label: '식음료' })
+  await page.getByLabel('전시장').selectOption({ label: '코엑스 (서울)' })
+  await page.getByLabel('시작일').fill('2027-06-01')
+  await page.getByLabel('종료일').fill('2027-06-02')
+  await page.getByLabel('상태').selectOption('published')
+  await page.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(page).toHaveURL(/\/admin\/fairs\/\d+\/edit$/)
+  const fairId = page.url().match(/fairs\/(\d+)\/edit/)[1]
+
+  const cover = page.getByRole('region', { name: '표지 이미지' })
+  await cover.getByLabel(/새 이미지/).setInputFiles({ name: 'booth.png', mimeType: 'image/png', buffer: PNG_4X4 })
+  await cover.getByLabel('직접 찍었거나 사용 허락을 받은 이미지예요').check()
+  await cover.getByRole('button', { name: '이미지 올리기' }).click()
+  await expect(cover.getByRole('status')).toHaveText('표지 이미지를 바꿨어요')
+
+  // 공개 상세: 서버가 WebP 로 바꿔 둔 이미지를 실제로 받아 그린다
+  await page.goto(`/fairs/${fairId}`)
+  const img = page.locator('article img').first()
+  await expect(img).toHaveAttribute('src', new RegExp(`^/api/v1/uploads/fairs/${fairId}-.+\\.webp$`))
+  await expect.poll(() => img.evaluate((el) => el.complete && el.naturalWidth)).toBe(4)
+
+  page.on('dialog', (d) => d.accept())
+  await page.goto(`/admin/fairs/${fairId}/edit`)
+  await cover.getByRole('button', { name: '이미지 지우기' }).click()
+  await expect(cover.getByRole('status')).toHaveText('이미지를 지우고 일러스트 표지로 돌아갔어요')
+  await page.goto(`/fairs/${fairId}`)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
+  await expect(page.locator('article img')).toHaveCount(0)
+})
+
 test('수집 항목을 검수해 승인하면 공개되고, 반려하면 큐에서 빠진다', async ({ page }, testInfo) => {
   const approveTitle = `E2E 수집 디저트 페어 (${testInfo.project.name})`
   const rejectTitle = `E2E 수집 반려할 행사 (${testInfo.project.name})`

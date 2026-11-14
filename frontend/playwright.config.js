@@ -43,6 +43,8 @@ export default defineConfig({
       timeout: 120_000,
       reuseExistingServer: false, // 항상 DB 를 비우고 시드부터 시작
       stdout: 'pipe',
+      // E2E 에서 올린 표지 이미지는 개발용 backend/uploads 와 섞이지 않게 따로 둔다 (git 무시)
+      env: { UPLOAD_DIR: 'uploads-e2e' },
     },
     {
       command: `npm run build && npx vite preview --port ${WEB_PORT} --strictPort`,

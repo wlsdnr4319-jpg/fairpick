@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { createFair, fetchAdminFair, updateFair } from '../../api/admin'
 import { errorMessage } from '../../api/client'
 import { useCategories, useTags, useVenues } from '../../hooks/useFairs'
+import CoverImageEditor from './CoverImageEditor'
 
 const EMPTY = {
   title: '',
@@ -73,7 +74,13 @@ export default function AdminFairEdit() {
   if (!isNew && existing.isPending) return <p className="text-gray-400">불러오는 중…</p>
   if (!isNew && existing.isError) return <p className="text-red-600">{errorMessage(existing.error)}</p>
   // 박람회가 바뀌면(새로 만든 뒤 수정 화면으로 이동 등) key 로 폼을 새로 그린다
-  return <FairForm key={fairId ?? 'new'} fairId={fairId} existing={existing.data} />
+  return (
+    <div className="space-y-8">
+      <FairForm key={fairId ?? 'new'} fairId={fairId} existing={existing.data} />
+      {/* 표지 이미지는 박람회를 저장한 뒤(id 가 생긴 뒤)에 올린다 */}
+      {!isNew && <CoverImageEditor fair={existing.data} />}
+    </div>
+  )
 }
 
 function FairForm({ fairId, existing }) {

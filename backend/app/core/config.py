@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:contact@example.com"  # 푸시 서비스가 문제 있을 때 연락할 주소
 
+    # 관리자가 올린 박람회 표지 이미지 저장 폴더. 운영에서는 docker volume 으로 붙인다 (docker-compose.prod.yml)
+    upload_dir: str = "uploads"
+    upload_max_bytes: int = 5 * 1024 * 1024
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

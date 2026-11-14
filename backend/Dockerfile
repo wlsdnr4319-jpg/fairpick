@@ -14,8 +14,10 @@ COPY alembic.ini .
 COPY alembic ./alembic
 COPY app ./app
 
-# root 가 아닌 사용자로 실행한다
-RUN useradd --create-home --uid 1000 fairpick
+# root 가 아닌 사용자로 실행한다.
+# /app/uploads 는 관리자가 올린 표지 이미지 폴더. 처음 만드는 named volume 은 이 소유자를 그대로 가져간다
+RUN useradd --create-home --uid 1000 fairpick \
+    && mkdir -p /app/uploads && chown fairpick /app/uploads
 USER fairpick
 
 EXPOSE 8000
