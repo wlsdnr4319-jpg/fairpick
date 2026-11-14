@@ -82,8 +82,9 @@ def test_radius_filter_excludes_far_and_unknown(client, fairs):
 
 def test_location_with_default_sort_only_adds_distance(client, fairs):
     body = _get(client, lat=GANGNAM[0], lng=GANGNAM[1]).json()
-    assert [i["title"] for i in body["items"]][:2] == ["강남 지난 행사", "부산 행사"]  # 개막순 그대로
-    assert body["items"][1]["distance_km"] > 300
+    titles = [i["title"] for i in body["items"]]
+    assert titles[0] == "부산 행사" and titles[-1] == "강남 지난 행사"  # 개막순 그대로(끝난 행사는 뒤)
+    assert body["items"][0]["distance_km"] > 300
 
 
 def test_without_location_distance_is_null(client, fairs):

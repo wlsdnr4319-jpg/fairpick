@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Literal
 
-from sqlalchemy import Select, and_, func, or_, select, text
+from sqlalchemy import Select, and_, case, func, or_, select, text
 
 from app.core.errors import AppError
 from app.core.geo import distance_m_sql
@@ -160,17 +160,25 @@ def bookmark_count_subquery():
 
 
 def apply_sort(stmt: Select, f: FairFilter, today: date) -> Select:
+    # 모든 정렬에서 이미 끝난 행사는 맨 뒤로 보낸다. 지우지 않는 이유: 상세·북마크·지난 행사 통계에 쓴다
+    ended = Fair.end_date < today
     if f.sort == "prereg_deadline":
         return stmt.order_by(Fair.prereg_end_at, Fair.id)
     if f.sort == "popular":
         bm = bookmark_count_subquery()
         return stmt.outerjoin(bm, bm.c.fair_id == Fair.id).order_by(
-            func.coalesce(bm.c.cnt, 0).desc(), Fair.start_date, Fair.id
+            ended, func.coalesce(bm.c.cnt, 0).desc(), Fair.start_date, Fair.id
         )
     if f.sort == "distance" and f.near:
         # 가까운 순. 이미 끝난 행사와 좌표가 없는 전시장은 뒤로, 같은 전시장 안에서는 개막순
         dist = _venue_distance_m(f.near)
         return stmt.join(Venue, Venue.id == Fair.venue_id).order_by(
-            Fair.end_date < today, dist.is_(None), dist, Fair.start_date, Fair.id
+            ended, dist.is_(None), dist, Fair.start_date, Fair.id
         )
-    return stmt.order_by(Fair.start_date, Fair.id)
+    # 개막순: 진행 중·예정은 개막이 빠른 순, 끝난 행사는 최근에 끝난 순
+    return stmt.order_by(
+        ended,
+        case((ended, None), else_=Fair.start_date),
+        case((ended, Fair.end_date), else_=None).desc(),
+        Fair.id,
+    )
