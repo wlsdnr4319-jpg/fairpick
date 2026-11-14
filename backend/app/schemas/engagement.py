@@ -9,7 +9,13 @@ class CalendarItem(BaseModel):
     start_date: date
     end_date: date
     category: str  # code
+    category_name: str
     venue: str
+    region: str
+    hall: str | None
+    bookmark_count: int
+    # 행사 규모 점수 (클수록 큰 행사). 캘린더 칸에 큰 행사만 몇 개 보여 줄 때 쓴다 (routers/engagement.calendar_scale)
+    scale: int
 
 
 class VisitIn(BaseModel):

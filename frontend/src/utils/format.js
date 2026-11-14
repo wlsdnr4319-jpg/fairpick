@@ -58,3 +58,14 @@ export function formatDistance(km) {
   if (km == null) return ''
   return km < 1 ? '1km 이내' : `약 ${Math.round(km).toLocaleString('ko-KR')}km`
 }
+
+// 칸에 들어갈 짧은 이름: 끝의 괄호 설명, 앞의 연도·회차, 뒤의 연도를 뗀다 ('제25회 서울카페쇼' → '서울카페쇼', '메가쇼 2026' → '메가쇼')
+export function shortTitle(title) {
+  const t = title
+    .replace(/\s*[(（].*[)）]\s*$/, '')
+    .replace(/^\s*\d{4}\s*/, '')
+    .replace(/^제?\s*\d+\s*회\s*/, '')
+    .replace(/\s*\d{4}\s*$/, '')
+    .trim()
+  return t || title
+}
