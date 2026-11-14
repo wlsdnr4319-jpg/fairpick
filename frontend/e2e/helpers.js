@@ -15,9 +15,12 @@ export async function openMenu(page) {
   if (await button.isVisible()) await button.click()
 }
 
+// 로그인 직후처럼 페이지가 바뀌면 서랍이 저절로 닫힌다. 그 사이에 '메뉴 닫기' 를 누르려 하면 버튼이 사라져 멈추므로
+// Esc 로 닫고(이미 닫혔으면 아무 일도 없다) 서랍이 없어졌는지만 확인한다
 export async function closeMenu(page) {
   const button = page.getByRole('button', { name: '메뉴 닫기' })
-  if (await button.isVisible()) await button.click()
+  if (await button.isVisible()) await page.keyboard.press('Escape')
+  await expect(button).toBeHidden()
 }
 
 // 로그인 상태 확인: 사이드바(휴대폰은 서랍)에 로그아웃 버튼이 보인다

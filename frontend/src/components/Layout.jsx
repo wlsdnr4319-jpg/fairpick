@@ -70,12 +70,15 @@ export default function Layout() {
         {/* 정보 정확성 안내와 법적 고지 (레퍼런스 15장) */}
         <footer className="border-t border-gray-200 py-6 text-center text-xs text-gray-500">
           <p>일정과 입장 조건은 주최 측 공식 사이트에서 최종 확인하세요.</p>
-          <p className="mt-2 space-x-3">
+          <p className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
             <Link to="/privacy" className="font-semibold underline hover:text-gray-800">
               개인정보 처리방침
             </Link>
             <Link to="/terms" className="underline hover:text-gray-800">
               이용약관
+            </Link>
+            <Link to="/credits" className="underline hover:text-gray-800">
+              사진 출처
             </Link>
             <a href="mailto:contact@example.com" className="underline hover:text-gray-800">
               정보 수정·삭제 요청

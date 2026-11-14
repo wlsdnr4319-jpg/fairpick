@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <div className="space-y-10">
       <section className="space-y-4">
-        <h1 className="text-2xl font-bold">이번 주말, 어떤 박람회 갈까요?</h1>
+        <h1 className="text-xl font-bold text-balance sm:text-2xl">이번 주말, 어떤 박람회 갈까요?</h1>
         <form
           role="search"
           className="flex gap-2"
@@ -50,12 +50,13 @@ function QuickLinks() {
   const { data: categories = [] } = useCategories()
   return (
     <div className="space-y-2">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* 휴대폰에서도 옆으로 밀지 않고 한눈에 보이게 줄바꿈한다 */}
+      <div className="flex flex-wrap gap-2">
         {categories.map((c) => (
           <Link
             key={c.code}
             to={`/fairs?category=${c.code}`}
-            className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-gray-100 px-4 text-sm hover:bg-indigo-50"
+            className="inline-flex min-h-10 items-center rounded-full bg-gray-100 px-3.5 text-sm hover:bg-indigo-50"
           >
             {c.name}
           </Link>
@@ -68,6 +69,20 @@ function QuickLinks() {
           #무료
         </Link>
       </div>
+    </div>
+  )
+}
+
+// 카드 묶음. 예전에는 옆으로 미는 줄이었는데 휴대폰에서 다음 카드가 잘려 보여 세로로 쌓는다.
+// 휴대폰은 처음 4개만(나머지는 '전체 보기'), 넓은 화면은 2~3열로 6개까지
+function CardGrid({ fairs }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+      {fairs.slice(0, 6).map((f, i) => (
+        <div key={f.id} className={i >= 4 ? 'hidden sm:block' : undefined}>
+          <FairCard fair={f} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -89,11 +104,11 @@ function Section({ title, more, children }) {
 }
 
 function WeekendSection() {
-  const { data, isPending, isError, refetch } = useFairs({ period: 'this_weekend', size: 10 })
+  const { data, isPending, isError, refetch } = useFairs({ period: 'this_weekend', size: 6 })
   return (
     <Section title="이번 주말 갈 만한 박람회" more="/fairs?period=this_weekend">
       {isPending && (
-        <div className="flex gap-4 overflow-hidden">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <SkeletonCard />
           <SkeletonCard />
         </div>
@@ -101,11 +116,7 @@ function WeekendSection() {
       {isError && <ErrorState onRetry={refetch} />}
       {data && data.items.length === 0 && <EmptyState title="이번 주말에 열리는 박람회가 없어요" />}
       {data && data.items.length > 0 && (
-        <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
-          {data.items.map((f) => (
-            <FairCard key={f.id} fair={f} compact />
-          ))}
-        </div>
+        <CardGrid fairs={data.items} />
       )}
     </Section>
   )
@@ -144,13 +155,13 @@ function NearbyList({ location, onClear }) {
     lng: location.lng,
     sort: 'distance',
     radius_km: NEARBY_RADIUS_KM,
-    size: 10,
+    size: 6,
   })
   const items = (data?.items ?? []).filter((f) => f.progress !== 'ended')
   return (
     <div className="space-y-2">
       {isPending && (
-        <div className="flex gap-4 overflow-hidden">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <SkeletonCard />
           <SkeletonCard />
         </div>
@@ -158,11 +169,7 @@ function NearbyList({ location, onClear }) {
       {isError && <ErrorState onRetry={refetch} />}
       {data && items.length === 0 && <EmptyState title={`${NEARBY_RADIUS_KM}km 안에서 열릴 박람회가 없어요`} />}
       {items.length > 0 && (
-        <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
-          {items.map((f) => (
-            <FairCard key={f.id} fair={f} compact />
-          ))}
-        </div>
+        <CardGrid fairs={items} />
       )}
       <button type="button" onClick={onClear} className="min-h-11 text-sm text-gray-500 underline">
         위치 지우기
@@ -184,13 +191,16 @@ function DeadlineSection() {
             const d = deadlineDDay(f.prereg_end_at)
             return (
               <li key={f.id}>
-                <Link to={`/fairs/${f.id}`} className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                <Link to={`/fairs/${f.id}`} className="flex min-h-14 items-center gap-3 px-3 py-3 hover:bg-gray-50 sm:px-4">
                   <span className="w-14 shrink-0 rounded-md bg-red-50 py-1 text-center text-sm font-bold text-red-600">
                     {/* 받아 둔 목록을 보는 사이 마감 시각이 지나면 d 가 null 이다 ('D-null' 로 보이던 문제) */}
                     {d == null ? '마감' : d === 0 ? '오늘' : `D-${d}`}
                   </span>
-                  <span className="flex-1 truncate">{f.title}</span>
-                  <span className="text-xs text-gray-500">{formatDateTime(f.prereg_end_at)} 마감</span>
+                  {/* 휴대폰은 제목 아래에 마감 시각 (한 줄에 두면 제목이 몇 글자만 보였다) */}
+                  <span className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3">
+                    <span className="line-clamp-2 break-words sm:flex-1 sm:truncate">{f.title}</span>
+                    <span className="text-xs text-gray-500 sm:shrink-0">{formatDateTime(f.prereg_end_at)} 마감</span>
+                  </span>
                 </Link>
               </li>
             )

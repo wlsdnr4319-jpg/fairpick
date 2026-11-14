@@ -16,6 +16,10 @@ html {
   font-family:
     "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   color-scheme: light;
+  /* 한글은 낱말(띄어쓰기) 단위로 줄을 바꾼다. 기본값은 글자마다 끊어 '갈까 / 요?' 처럼 낱말 중간이 갈라졌다.
+     띄어쓰기 없는 긴 제목은 칸을 넘칠 때만 글자 단위로 끊는다(overflow-wrap) */
+  word-break: keep-all;
+  overflow-wrap: break-word;
   /* 휴대폰에서 버튼을 두 번 누르면 확대되는 지연을 없애고, 누를 때 회색 사각형 대신 각 버튼의 hover/active 색을 쓴다 */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;

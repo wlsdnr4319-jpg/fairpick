@@ -62,7 +62,7 @@ const PNG_4X4 = Buffer.from(
   'base64',
 )
 
-test('표지 이미지를 올리면 공개 화면에 나오고, 지우면 일러스트로 돌아간다', async ({ page }, testInfo) => {
+test('표지 이미지를 올리면 공개 화면에 나오고, 지우면 예시 사진으로 돌아간다', async ({ page }, testInfo) => {
   const title = `E2E 표지 박람회 ${testInfo.project.name} ${Date.now()}`
   await login(page, ADMIN)
   await page.goto('/admin/fairs/new')
@@ -91,10 +91,14 @@ test('표지 이미지를 올리면 공개 화면에 나오고, 지우면 일러
   page.on('dialog', (d) => d.accept())
   await page.goto(`/admin/fairs/${fairId}/edit`)
   await cover.getByRole('button', { name: '이미지 지우기' }).click()
-  await expect(cover.getByRole('status')).toHaveText('이미지를 지우고 일러스트 표지로 돌아갔어요')
+  await expect(cover.getByRole('status')).toHaveText('이미지를 지우고 기본 표지로 돌아갔어요')
   await page.goto(`/fairs/${fairId}`)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
-  await expect(page.locator('article img')).toHaveCount(0)
+  // 식음료 + 키워드 없음 → 식음료 예시 사진. 실제로 받아지는지(파일이 빌드에 들어갔는지)도 본다
+  const stock = page.locator('article img').first()
+  await expect(stock).toHaveAttribute('data-cover', 'stock')
+  await expect.poll(() => stock.evaluate((el) => el.complete && el.naturalWidth > 0)).toBe(true)
+  await expect(page.getByText('예시 사진')).toBeVisible()
 })
 
 test('수집 항목을 검수해 승인하면 공개되고, 반려하면 큐에서 빠진다', async ({ page }, testInfo) => {

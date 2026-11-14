@@ -48,13 +48,13 @@ const fileInput = () => screen.findByLabelText(/새 이미지/)
 describe('표지 이미지', () => {
   beforeEach(() => vi.spyOn(window, 'confirm').mockReturnValue(true))
 
-  it('이미지가 없으면 일러스트를 보여 주고, 권리 확인을 해야 올릴 수 있다', async () => {
+  it('이미지가 없으면 기본 표지를 보여 주고, 권리 확인을 해야 올릴 수 있다', async () => {
     const uploads = endpoints()
     const user = userEvent.setup()
     renderApp(routes, { route: '/admin/fairs/7/edit' })
 
     await user.upload(await fileInput(), photo())
-    expect(screen.getByText(/일러스트를 그리고 있어요/)).toBeInTheDocument()
+    expect(screen.getByText(/주제가 같은 예시 사진/)).toBeInTheDocument()
     const button = screen.getByRole('button', { name: '이미지 올리기' })
     expect(button).toBeDisabled()
 
@@ -96,15 +96,15 @@ describe('표지 이미지', () => {
     expect(await screen.findByText('이미지 파일을 읽을 수 없어요')).toBeInTheDocument()
   })
 
-  it('지우면 일러스트 표지로 돌아간다', async () => {
+  it('지우면 기본 표지로 돌아간다', async () => {
     endpoints({ ...FAIR, image_url: UPLOADED })
     const user = userEvent.setup()
     renderApp(routes, { route: '/admin/fairs/7/edit' })
 
     await user.click(await screen.findByRole('button', { name: '이미지 지우기' }))
     expect(window.confirm).toHaveBeenCalled()
-    expect(await screen.findByText('이미지를 지우고 일러스트 표지로 돌아갔어요')).toBeInTheDocument()
-    expect(document.querySelector('img')).toBeNull()
+    expect(await screen.findByText('이미지를 지우고 기본 표지로 돌아갔어요')).toBeInTheDocument()
+    expect(document.querySelector('img')).toHaveAttribute('data-cover', 'stock') // 올린 이미지 대신 예시 사진
     expect(screen.queryByRole('button', { name: '이미지 지우기' })).not.toBeInTheDocument()
   })
 })

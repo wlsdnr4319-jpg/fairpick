@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { currentLocation, renderPage } from '../test/render'
 import { API, json, server } from '../test/server'
 import Calendar from './Calendar'
@@ -79,5 +79,30 @@ describe('캘린더', () => {
     await userEvent.click(screen.getByRole('button', { name: '이전 달' }))
     expect(screen.getByRole('heading', { name: '2025년 12월' })).toBeInTheDocument()
     expect(currentLocation(screen)).toBe('/calendar?month=2025-12')
+  })
+
+  describe('휴대폰 화면', () => {
+    // jsdom 에는 matchMedia 가 없다. 휴대폰 폭이라고 답하게 바꿔 끼운다
+    const phone = () =>
+      vi.stubGlobal('matchMedia', (query) => ({ matches: query.includes('max-width'), media: query, addEventListener() {}, removeEventListener() {} }))
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('칸에는 날짜와 개수만, 날짜를 누르면 아래에 그날 박람회 목록이 나온다', async () => {
+      phone()
+      calendarOf({ '2026-12': [item(1, '서울카페쇼', '2026-12-03', '2026-12-05'), item(2, '리빙페어', '2026-12-05', '2026-12-05')] })
+      renderCalendar('/calendar?month=2026-12')
+
+      // 이번 달이 아니면 1일이 골라져 있다
+      expect(await screen.findByRole('heading', { name: '12월 1일 박람회 0개' })).toBeInTheDocument()
+      const day5 = await screen.findByRole('button', { name: '12월 5일, 박람회 2개' })
+      expect(linksTo('서울카페쇼')).toHaveLength(0) // 칸 안에는 제목 링크가 없다
+
+      await userEvent.click(day5)
+      expect(day5).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('heading', { name: '12월 5일 박람회 2개' })).toBeInTheDocument()
+      expect(linksTo(/서울카페쇼/)).toHaveLength(1)
+      expect(linksTo(/서울카페쇼/)[0]).toHaveAttribute('href', '/fairs/1')
+      expect(linksTo(/리빙페어/)).toHaveLength(1)
+    })
   })
 })
