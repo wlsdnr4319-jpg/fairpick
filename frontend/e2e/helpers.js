@@ -9,6 +9,27 @@ export function newAccount(testInfo, label = '') {
   return { email: `e2e-${id}@example.com`, password: 'e2e-password-1', nickname: `테스터${id.slice(-5)}` }
 }
 
+// 휴대폰 화면에서는 사이드바가 ☰ 서랍 안에 있다. 데스크톱이면 아무것도 하지 않는다
+export async function openMenu(page) {
+  const button = page.getByRole('button', { name: '메뉴 열기' })
+  if (await button.isVisible()) await button.click()
+}
+
+export async function closeMenu(page) {
+  const button = page.getByRole('button', { name: '메뉴 닫기' })
+  if (await button.isVisible()) await button.click()
+}
+
+// 로그인 상태 확인: 사이드바(휴대폰은 서랍)에 로그아웃 버튼이 보인다
+// 로그인 직후엔 페이지가 바뀌면서 열어 둔 서랍이 닫힐 수 있어, 열기와 확인을 함께 다시 시도한다
+export async function expectSignedIn(page, timeout = 15_000) {
+  await expect(async () => {
+    await openMenu(page)
+    await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible({ timeout: 1_000 })
+  }).toPass({ timeout })
+  await closeMenu(page)
+}
+
 export async function signup(page, account) {
   await page.goto('/signup')
   await page.getByLabel('이메일').fill(account.email)
@@ -18,7 +39,7 @@ export async function signup(page, account) {
   await page.getByRole('button', { name: '가입하기' }).click()
   // 비밀번호 해시(Argon2)를 가입·로그인에서 두 번 하므로 느린 PC 에선 몇 초 걸린다
   await expect(page).toHaveURL('/', { timeout: 20_000 })
-  await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible()
+  await expectSignedIn(page)
 }
 
 export async function login(page, { email, password }, next) {
@@ -26,11 +47,12 @@ export async function login(page, { email, password }, next) {
   await page.getByLabel('이메일').fill(email)
   await page.getByLabel('비밀번호').fill(password)
   await page.getByRole('button', { name: '로그인', exact: true }).click()
-  await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible({ timeout: 15_000 })
+  await expectSignedIn(page)
 }
 
 // 로그아웃 요청이 끝나기 전에 이동하면 아직 로그인 상태라 로그인 화면이 홈으로 돌려보낸다
 export async function logout(page) {
+  await openMenu(page)
   await page.getByRole('button', { name: '로그아웃' }).click()
   await expect(page.getByRole('link', { name: '로그인', exact: true })).toBeVisible()
 }

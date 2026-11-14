@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN, login, logout, newAccount, signup } from './helpers'
+import { ADMIN, login, logout, newAccount, openMenu, signup } from './helpers'
 
 // 관리자 흐름 (F-08 관리자, F-10 수집 검수). 관리자 계정과 검수 대기 항목은 e2e_server 가 넣어 둔다
 
@@ -7,7 +7,8 @@ test('박람회를 초안으로 등록 → 공개 → 숨김, 상태에 따라 �
   const title = `E2E 등록 박람회 ${testInfo.project.name} ${Date.now()}`
   await login(page, ADMIN)
 
-  await page.getByRole('link', { name: '관리자' }).click()
+  await openMenu(page)
+  await page.getByRole('link', { name: '관리자 홈' }).click()
   await page.getByRole('link', { name: '새 박람회 등록' }).click()
   await page.getByLabel('제목').fill(title)
   await page.getByLabel('카테고리').selectOption({ label: '식음료' })
@@ -150,7 +151,7 @@ test('장소를 못 맞춘 수집 항목은 전시장을 골라 승인하고, �
 
 test('일반 회원은 관리자 화면을 쓸 수 없다', async ({ page }, testInfo) => {
   await signup(page, newAccount(testInfo, 'user'))
-  await expect(page.getByRole('link', { name: '관리자' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: '관리자 홈' })).toHaveCount(0)
 
   await page.goto('/admin/fairs/new')
   await expect(page.getByText('관리자만 이용할 수 있어요')).toBeVisible()
