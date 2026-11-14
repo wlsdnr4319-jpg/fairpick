@@ -23,14 +23,9 @@ export async function closeMenu(page) {
   await expect(button).toBeHidden()
 }
 
-// 로그인 상태 확인: 사이드바(휴대폰은 서랍)에 로그아웃 버튼이 보인다
-// 로그인 직후엔 페이지가 바뀌면서 열어 둔 서랍이 닫힐 수 있어, 열기와 확인을 함께 다시 시도한다
+// 로그인 상태 확인: 위쪽 바 오른쪽에 계정 메뉴 버튼이 보인다 (데스크톱·휴대폰 같음)
 export async function expectSignedIn(page, timeout = 15_000) {
-  await expect(async () => {
-    await openMenu(page)
-    await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible({ timeout: 1_000 })
-  }).toPass({ timeout })
-  await closeMenu(page)
+  await expect(page.getByRole('button', { name: /^계정 메뉴/ })).toBeVisible({ timeout })
 }
 
 export async function signup(page, account) {
@@ -55,7 +50,7 @@ export async function login(page, { email, password }, next) {
 
 // 로그아웃 요청이 끝나기 전에 이동하면 아직 로그인 상태라 로그인 화면이 홈으로 돌려보낸다
 export async function logout(page) {
-  await openMenu(page)
+  await page.getByRole('button', { name: /^계정 메뉴/ }).click()
   await page.getByRole('button', { name: '로그아웃' }).click()
   await expect(page.getByRole('link', { name: '로그인', exact: true })).toBeVisible()
 }

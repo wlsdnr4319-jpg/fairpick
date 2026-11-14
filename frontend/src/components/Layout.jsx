@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { useAuth } from '../store/AuthContext'
 import Sidebar from './Sidebar'
+import TopBar from './TopBar'
 
-// 데스크톱(md 이상)은 왼쪽 고정 사이드바, 휴대폰은 위쪽 바의 ☰ 로 여는 서랍.
+// 데스크톱(md 이상)은 왼쪽 고정 사이드바, 휴대폰은 위쪽 바의 ☰ 로 여는 서랍. 위쪽 바(TopBar)는 검색·로그인·계정 메뉴.
 // 서랍은 열 때만 그려서(조건부 렌더) 같은 링크가 화면에 두 번 잡히지 않게 한다.
 export default function Layout() {
-  const { user, ready } = useAuth()
   const location = useLocation()
   // 서랍을 연 주소(location.key)를 기억한다. 페이지를 옮기면(링크·뒤로 가기) key 가 바뀌어 저절로 닫힌다
   const [openedAt, setOpenedAt] = useState(null)
@@ -35,34 +34,12 @@ export default function Layout() {
         <Sidebar />
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-gray-200 bg-white/95 px-2 backdrop-blur md:hidden">
-        <button
-          ref={menuButton}
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="메뉴 열기"
-          aria-expanded={open}
-          aria-controls="mobile-menu"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100"
-        >
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <path d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
-        </button>
-        <Link to="/" translate="no" className="mr-auto rounded-md px-1 text-lg font-bold text-indigo-600">
-          페어픽
-        </Link>
-        {ready && !user && (
-          <Link to="/login" className="inline-flex min-h-11 items-center rounded-md px-3 text-sm text-gray-700 hover:bg-gray-100">
-            로그인
-          </Link>
-        )}
-      </header>
 
       {open && <Drawer onClose={dismiss} onNavigate={navigated} />}
 
       {/* 서랍이 열려 있는 동안 뒤쪽 화면은 포커스·클릭이 닿지 않게(inert) */}
       <div className="flex min-w-0 flex-1 flex-col" inert={open || undefined}>
+        <TopBar menuButtonRef={menuButton} menuOpen={open} onOpenMenu={() => setOpen(true)} />
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 outline-none md:px-8">
           <Outlet />
         </main>
@@ -142,7 +119,7 @@ function Drawer({ onClose, onNavigate }) {
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <Sidebar onNavigate={onNavigate} />
+        <Sidebar onNavigate={onNavigate} account />
       </div>
     </div>
   )
