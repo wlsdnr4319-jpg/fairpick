@@ -28,7 +28,7 @@ export default function AdminFairs() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">박람회 관리</h1>
-        <Link to="/admin/fairs/new" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 text-white">
+        <Link to="/admin/fairs/new" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white">
           새 박람회
         </Link>
       </div>

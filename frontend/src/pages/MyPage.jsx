@@ -37,7 +37,7 @@ export default function MyPage() {
         <EmptyState
           title="아직 북마크한 박람회가 없어요"
           action={
-            <Link to="/fairs" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 text-white">
+            <Link to="/fairs" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white">
               박람회 둘러보기
             </Link>
           }

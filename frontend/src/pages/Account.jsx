@@ -162,7 +162,7 @@ function ResetRequest() {
       >
         <Field label="가입한 이메일" type="email" value={email} onChange={setEmail} autoComplete="email" />
         {msg && <p role="status" className="text-sm text-gray-700">{msg}</p>}
-        <button disabled={busy} className="min-h-11 w-full rounded-lg bg-indigo-600 text-white">재설정 링크 받기</button>
+        <button disabled={busy} className="min-h-11 w-full rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60">{busy ? '보내는 중…' : '재설정 링크 받기'}</button>
       </form>
     </AuthCard>
   )
@@ -189,7 +189,7 @@ function ResetConfirm({ token }) {
       >
         <Field label="새 비밀번호 (8자 이상)" type="password" minLength={8} value={pw} onChange={setPw} autoComplete="new-password" />
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-        <button className="min-h-11 w-full rounded-lg bg-indigo-600 text-white">비밀번호 바꾸기</button>
+        <button className="min-h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white">비밀번호 바꾸기</button>
       </form>
     </AuthCard>
   )

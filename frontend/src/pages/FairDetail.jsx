@@ -33,11 +33,11 @@ export default function FairDetail() {
       <header className="space-y-3">
         <div className="flex items-center gap-2">
           <StatusBadge progress={fair.progress} dDay={fair.d_day} />
-          <Link to={`/fairs?category=${fair.category.code}`} className="text-sm text-gray-500">
+          <Link to={`/fairs?category=${fair.category.code}`} className="text-sm text-gray-600 underline-offset-2 hover:underline">
             {fair.category.name}
           </Link>
         </div>
-        <h1 className="text-2xl font-bold">{fair.title}</h1>
+        <h1 className="text-2xl font-bold text-balance break-words">{fair.title}</h1>
         <div className="flex flex-wrap gap-1.5">
           {fair.tags.map((t) => (
             <TagChip key={t.slug} tag={t} asLink />
@@ -95,14 +95,14 @@ export default function FairDetail() {
       </footer>
 
       {/* 모바일 하단 고정 바: 북마크, 공식 사이트 */}
-      <div className="fixed inset-x-0 bottom-0 flex items-center gap-2 border-t bg-white px-4 py-2 md:static md:border-0 md:p-0">
+      <div className="fixed inset-x-0 bottom-0 z-10 flex items-center gap-2 border-t bg-white px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:static md:border-0 md:p-0">
         <BookmarkButton fairId={fair.id} bookmarked={fair.is_bookmarked} className="border shadow-none" />
         <ShareButton title={fair.title} />
         <a
           href={`/api/v1/fairs/${fair.id}/calendar.ics`}
           download
           aria-label="내 캘린더에 추가"
-          className="inline-flex h-11 items-center justify-center rounded-full border px-3 text-sm"
+          className="inline-flex h-11 items-center justify-center rounded-full border px-3 text-sm hover:bg-gray-50"
         >
           캘린더
         </a>
@@ -111,7 +111,7 @@ export default function FairDetail() {
             href={fair.official_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-indigo-600 px-4 text-white md:flex-none"
+            className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white md:flex-none"
           >
             공식 사이트
           </a>
@@ -152,7 +152,7 @@ function PreregBox({ prereg, price }) {
           href={prereg.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 text-white"
+          className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white"
         >
           사전등록하러 가기
         </a>
@@ -179,7 +179,7 @@ function ShareButton({ title }) {
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <button type="button" onClick={share} className="inline-flex h-11 items-center justify-center rounded-full border px-3 text-sm" aria-live="polite">
+    <button type="button" onClick={share} className="inline-flex h-11 items-center justify-center rounded-full border px-3 text-sm hover:bg-gray-50" aria-live="polite">
       {copied ? '링크 복사됨' : '공유'}
     </button>
   )

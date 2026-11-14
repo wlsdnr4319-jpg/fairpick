@@ -30,9 +30,9 @@ export default function Home() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="커피, 일러스트, 캠핑…"
             aria-label="박람회 검색"
-            className="min-h-11 flex-1 rounded-lg border border-gray-300 px-3"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-gray-300 px-3"
           />
-          <button type="submit" className="min-h-11 rounded-lg bg-indigo-600 px-4 text-white">
+          <button type="submit" className="min-h-11 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white">
             검색
           </button>
         </form>
@@ -122,7 +122,7 @@ function NearbySection() {
       {!location ? (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-4">
           <p className="flex-1 text-sm text-gray-600">가까운 전시장에서 열리는 박람회를 거리순으로 보여드려요. 위치는 약 1km 단위로만 쓰고 저장하지 않아요.</p>
-          <button type="button" onClick={locate} disabled={loading} className="min-h-11 rounded-lg bg-indigo-600 px-4 text-sm text-white disabled:opacity-60">
+          <button type="button" onClick={locate} disabled={loading} className="min-h-11 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-sm text-white disabled:opacity-60">
             {loading ? '위치 확인 중…' : '내 위치로 찾기'}
           </button>
           {error && (

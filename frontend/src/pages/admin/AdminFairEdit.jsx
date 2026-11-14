@@ -207,7 +207,7 @@ function FairForm({ fairId, existing }) {
       </Group>
 
       {message && <p role="status" className="text-sm">{message}</p>}
-      <button disabled={save.isPending} className="min-h-11 rounded-lg bg-indigo-600 px-6 text-white disabled:opacity-60">
+      <button disabled={save.isPending} className="min-h-11 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-6 text-white disabled:opacity-60">
         {save.isPending ? '저장 중…' : '저장'}
       </button>
     </form>

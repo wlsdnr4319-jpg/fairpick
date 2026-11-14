@@ -40,7 +40,7 @@ export default function FairList() {
               }
             />
           ) : (
-            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${isPlaceholderData ? 'opacity-60' : ''}`}>
+            <div aria-busy={isPlaceholderData || undefined} className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${isPlaceholderData ? 'opacity-60' : ''}`}>
               {data.items.map((f, i) => (
                 <Fragment key={f.id}>
                   {/* API 가 끝난 행사를 맨 뒤로 보내므로, 처음 나오는 끝난 행사 앞에 구분 제목을 둔다 */}

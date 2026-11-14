@@ -16,9 +16,10 @@ test('홈에서 목록으로, 목록에서 상세로', async ({ page }) => {
   expect(await countOf(page)).toBeGreaterThanOrEqual(30)
 
   // 첫 카드의 제목을 기억했다가 상세 화면 제목과 비교한다
-  const firstCard = page.locator('main a[href^="/fairs/"]').first()
+  // 카드는 <article>, 제목이 상세 링크다 (북마크 버튼이 링크 안에 들어가지 않게)
+  const firstCard = page.locator('main article').first()
   const title = await firstCard.getByRole('heading').textContent()
-  await firstCard.click()
+  await firstCard.getByRole('link', { name: title }).click()
 
   await expect(page).toHaveURL(/\/fairs\/\d+$/)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)

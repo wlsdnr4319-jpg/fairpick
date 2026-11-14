@@ -24,7 +24,7 @@ export default function BookmarkButton({ fairId, bookmarked, className = '' }) {
       onClick={onClick}
       aria-label={bookmarked ? '북마크 해제' : '북마크'}
       aria-pressed={bookmarked}
-      className={`inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow ${className}`}
+      className={`inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white hover:shadow-md ${className}`}
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
         <path

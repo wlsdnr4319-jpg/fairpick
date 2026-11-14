@@ -49,7 +49,7 @@ export default function VenueMap({ venue }) {
       )}
       <div className="flex flex-wrap gap-2 text-sm">
         {links.route && (
-          <a href={links.route} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 text-white">
+          <a href={links.route} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white">
             카카오맵 길찾기
           </a>
         )}

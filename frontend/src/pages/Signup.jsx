@@ -43,7 +43,7 @@ export default function Signup() {
           onChange={(v) => setForm({ ...form, password: v })}
           autoComplete="new-password"
         />
-        <Field label="닉네임" maxLength={30} value={form.nickname} onChange={(v) => setForm({ ...form, nickname: v })} />
+        <Field label="닉네임" name="nickname" maxLength={30} value={form.nickname} onChange={(v) => setForm({ ...form, nickname: v })} autoComplete="nickname" />
         <label className="flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" checked={form.is_over_14} onChange={(e) => setForm({ ...form, is_over_14: e.target.checked })} />
           만 14세 이상입니다
@@ -53,7 +53,7 @@ export default function Signup() {
           <Link to="/privacy" className="underline">개인정보 처리방침</Link>에 동의한 것으로 봅니다. 수집 항목은 이메일과 닉네임뿐이에요 (소셜 가입은 제공자가 주는 이메일·닉네임).
         </p>
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-        <button disabled={busy} className="min-h-11 w-full rounded-lg bg-indigo-600 text-white disabled:opacity-60">
+        <button disabled={busy} className="min-h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">
           {busy ? '가입 중…' : '가입하기'}
         </button>
       </form>
