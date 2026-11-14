@@ -111,7 +111,8 @@ def test_invalid_period(client, query):
 
 
 def test_category_region_tags(data, client):
-    assert titles(client, "category=culture") == ["지난 전시", "부산 아트페어"]
+    # 끝난 행사는 개막이 더 빨라도 뒤로 간다
+    assert titles(client, "category=culture") == ["부산 아트페어", "지난 전시"]
     assert titles(client, "region=부산") == ["부산 아트페어", "와인 페스티벌"]
     # 태그를 여러 개 고르면 '모두 포함'
     assert titles(client, "tags=date") == ["부산 아트페어", "커피 위크엔드"]
@@ -143,8 +144,32 @@ def test_sort_prereg_deadline_excludes_past_and_null(data, client):
 def test_sort_popular(db, data, client):
     for _ in range(2):
         f.bookmark(db, f.user(db), data["december"])
-    f.bookmark(db, f.user(db), data["ended"])
-    assert titles(client, "sort=popular")[:2] == ["와인 페스티벌", "지난 전시"]
+    for _ in range(3):
+        f.bookmark(db, f.user(db), data["ended"])
+    # 북마크가 가장 많아도 끝난 행사는 맨 뒤
+    got = titles(client, "sort=popular")
+    assert got[0] == "와인 페스티벌"
+    assert got[-1] == "지난 전시"
+
+
+def test_default_order_puts_ended_last_recent_first(db, data, client):
+    f.fair(
+        db,
+        category=data["ended"].category,
+        venue=data["ended"].venue,
+        title="더 오래된 전시",
+        start=date(2026, 9, 1),
+        end=date(2026, 9, 3),
+    )
+    # 진행 중·예정은 개막순, 끝난 행사는 최근에 끝난 순
+    assert titles(client, "") == [
+        "부산 아트페어",
+        "커피 위크엔드",
+        "디저트 페어",
+        "와인 페스티벌",
+        "지난 전시",
+        "더 오래된 전시",
+    ]
 
 
 def test_refs(data, client):

@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FairCard from '../components/FairCard'
 import FilterBar from '../components/FilterBar'
@@ -40,8 +41,14 @@ export default function FairList() {
             />
           ) : (
             <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${isPlaceholderData ? 'opacity-60' : ''}`}>
-              {data.items.map((f) => (
-                <FairCard key={f.id} fair={f} />
+              {data.items.map((f, i) => (
+                <Fragment key={f.id}>
+                  {/* API 가 끝난 행사를 맨 뒤로 보내므로, 처음 나오는 끝난 행사 앞에 구분 제목을 둔다 */}
+                  {f.progress === 'ended' && data.items[i - 1]?.progress !== 'ended' && (
+                    <h2 className="col-span-full mt-4 border-t pt-4 text-sm font-semibold text-gray-500">끝난 박람회</h2>
+                  )}
+                  <FairCard fair={f} />
+                </Fragment>
               ))}
             </div>
           )}

@@ -30,6 +30,33 @@ describe('박람회 목록', () => {
     expect(screen.getByText('2개')).toBeInTheDocument()
   })
 
+  it('끝난 박람회는 구분 제목 아래에 흐리게 보인다', async () => {
+    listEndpoint(
+      page([
+        makeFair({ title: '다음 주 박람회' }),
+        makeFair({ title: '지난달 박람회', progress: 'ended', d_day: null }),
+        makeFair({ title: '지난해 박람회', progress: 'ended', d_day: null }),
+      ]),
+    )
+    renderList()
+    const heading = await screen.findByRole('heading', { name: '끝난 박람회' })
+    expect(screen.getAllByRole('heading', { name: '끝난 박람회' })).toHaveLength(1)
+    // 제목은 진행 예정 카드 뒤, 끝난 카드 앞
+    const upcoming = screen.getByText('다음 주 박람회').closest('a')
+    const ended = screen.getByText('지난달 박람회').closest('a')
+    expect(upcoming.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(heading.compareDocumentPosition(ended) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(ended).toHaveAttribute('data-ended', 'true')
+    expect(upcoming).not.toHaveAttribute('data-ended')
+  })
+
+  it('끝난 박람회가 없으면 구분 제목도 없다', async () => {
+    listEndpoint(page([makeFair({ title: '예정 박람회' })]))
+    renderList()
+    await screen.findByText('예정 박람회')
+    expect(screen.queryByRole('heading', { name: '끝난 박람회' })).not.toBeInTheDocument()
+  })
+
   it('URL 의 필터를 그대로 API 에 보낸다 (주소를 공유하면 같은 목록)', async () => {
     const queries = listEndpoint(page([]))
     renderList('/fairs?category=food&tags=date,kids&free=true&page=2')

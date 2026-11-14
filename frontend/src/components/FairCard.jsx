@@ -15,12 +15,15 @@ const CATEGORY_BG = {
 }
 
 export default function FairCard({ fair, compact = false }) {
+  // 끝난 행사는 목록 맨 뒤에 오고(API 정렬), 카드도 흐리게 보여 진행 중·예정과 구분한다
+  const ended = fair.progress === 'ended'
   return (
     <Link
       to={`/fairs/${fair.id}`}
+      data-ended={ended || undefined}
       className={`group block overflow-hidden rounded-xl border border-gray-200 bg-white hover:shadow-md ${
         compact ? 'w-64 shrink-0' : ''
-      }`}
+      } ${ended ? 'opacity-60 hover:opacity-100' : ''}`}
     >
       <div className={`relative h-36 bg-gradient-to-br ${CATEGORY_BG[fair.category.code] ?? 'from-gray-200 to-gray-300'}`}>
         {fair.image_url && <img src={fair.image_url} alt="" className="h-full w-full object-cover" />}
