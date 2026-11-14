@@ -17,6 +17,7 @@ const renderLayout = (route = '/') =>
 
 // 데스크톱 사이드바 (jsdom 은 CSS 를 적용하지 않아 휴대폰용 위쪽 바도 함께 그려진다)
 const desktop = () => screen.getByRole('complementary')
+const top = () => screen.getByRole('banner')
 
 describe('공통 레이아웃', () => {
   it('첫 Tab 에 본문으로 건너뛰는 링크가 있다', async () => {
@@ -38,17 +39,57 @@ describe('공통 레이아웃', () => {
     expect(await within(side).findByRole('link', { name: '식음료' })).toHaveAttribute('href', '/fairs?category=food')
     // 로그인 전에는 내 메뉴·관리 메뉴가 없다
     expect(within(side).queryByRole('link', { name: '북마크' })).not.toBeInTheDocument()
-    expect(within(side).getByRole('link', { name: '회원가입' })).toBeInTheDocument()
+    // 로그인·회원가입은 사이드바가 아니라 위쪽 바 오른쪽에
+    expect(within(side).queryByRole('link', { name: '회원가입' })).not.toBeInTheDocument()
+    expect(await within(top()).findByRole('link', { name: '회원가입' })).toHaveAttribute('href', '/signup')
+    expect(within(top()).getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
   })
 
-  it('로그인하면 내 메뉴와 닉네임·로그아웃, 관리자에게는 관리 메뉴', async () => {
+  it('위쪽 바: 검색어로 목록을 열고, 이번 주말 박람회 수를 보여 준다', async () => {
+    server.use(http.get(`${API}/fairs`, () => json({ items: [], page: 1, size: 1, total: 12 })))
+    const user = userEvent.setup()
+    renderLayout('/calendar')
+    expect(await within(top()).findByRole('link', { name: '이번 주말 박람회 12개' })).toHaveAttribute('href', '/fairs?period=this_weekend')
+    await user.type(within(top()).getByRole('searchbox', { name: '박람회 이름·키워드' }), '커피{Enter}')
+    expect(currentLocation(screen)).toBe('/fairs?q=%EC%BB%A4%ED%94%BC')
+  })
+
+  it('로그인하면 사이드바에 내 메뉴·관리 메뉴, 위쪽 바에 계정 메뉴', async () => {
     loggedInAs({ id: 1, email: 'a@example.com', nickname: '관리인', role: 'admin' })
+    const user = userEvent.setup()
     renderLayout()
     const side = desktop()
-    expect(await within(side).findByText('관리인')).toBeInTheDocument()
-    expect(within(side).getByRole('link', { name: '관람 노트' })).toHaveAttribute('href', '/mypage/visits')
+    expect(await within(side).findByRole('link', { name: '관람 노트' })).toHaveAttribute('href', '/mypage/visits')
     expect(within(side).getByRole('link', { name: '수집 검수' })).toHaveAttribute('href', '/admin/review')
-    expect(within(side).getByRole('button', { name: '로그아웃' })).toBeInTheDocument()
+    expect(within(side).queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument()
+
+    const account = within(top()).getByRole('button', { name: '계정 메뉴 (관리인)' })
+    expect(account).toHaveAttribute('aria-expanded', 'false')
+    await user.click(account)
+    expect(account).toHaveAttribute('aria-expanded', 'true')
+    expect(within(top()).getByText('a@example.com')).toBeInTheDocument()
+    expect(within(top()).getByRole('link', { name: '관리자 홈' })).toHaveAttribute('href', '/admin')
+
+    // Esc 로 닫으면 버튼으로 포커스가 돌아온다
+    await user.keyboard('{Escape}')
+    expect(within(top()).queryByRole('link', { name: '관리자 홈' })).not.toBeInTheDocument()
+    expect(account).toHaveFocus()
+
+    // 메뉴의 링크로 이동하면 닫힌다
+    await user.click(account)
+    await user.click(within(top()).getByRole('link', { name: '관람 노트' }))
+    expect(currentLocation(screen)).toBe('/mypage/visits')
+    expect(account).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('계정 메뉴에서 로그아웃하면 홈으로 가고 로그인 버튼이 다시 보인다', async () => {
+    loggedInAs()
+    const user = userEvent.setup()
+    renderLayout('/report')
+    await user.click(await within(top()).findByRole('button', { name: /^계정 메뉴/ }))
+    await user.click(within(top()).getByRole('button', { name: '로그아웃' }))
+    expect(await within(top()).findByRole('link', { name: '로그인' })).toBeInTheDocument()
+    expect(currentLocation(screen)).toBe('/')
   })
 
   it('휴대폰 메뉴: ☰ 로 열고, 메뉴를 누르면 이동하며 닫힌다', async () => {

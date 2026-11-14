@@ -25,7 +25,8 @@ const ADMIN = [
   { to: '/admin/review', label: '수집 검수', icon: 'inbox' },
 ]
 
-export default function Sidebar({ onNavigate }) {
+// account: 아래쪽 닉네임·로그아웃(로그인 전엔 로그인·회원가입). 넓은 화면은 위쪽 바 오른쪽에 있어서 휴대폰 서랍에서만 켠다
+export default function Sidebar({ onNavigate, account = false }) {
   const { user, ready, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -40,9 +41,12 @@ export default function Sidebar({ onNavigate }) {
 
   return (
     <div className="flex h-full flex-col">
-      <Link to="/" translate="no" onClick={onNavigate} className="mx-3 mt-5 mb-4 rounded-md px-2 text-xl font-bold text-indigo-600">
-        페어픽
-      </Link>
+      {/* 높이·아래 선을 위쪽 바(h-16)와 맞춰 한 줄로 이어 보이게 */}
+      <div className="mb-4 flex h-14 shrink-0 items-center border-b border-gray-200 px-3 md:h-16">
+        <Link to="/" translate="no" onClick={onNavigate} className="rounded-md px-2 text-xl font-bold text-indigo-600">
+          페어픽
+        </Link>
+      </div>
 
       <nav aria-label="사이드바" className="flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 pb-4">
         <Section title="둘러보기" links={BROWSE} active={active} onNavigate={onNavigate} />
@@ -51,44 +55,46 @@ export default function Sidebar({ onNavigate }) {
         {ready && user?.role === 'admin' && <Section title="관리" links={ADMIN} active={active} onNavigate={onNavigate} />}
       </nav>
 
-      <div className="border-t border-gray-200 p-3">
-        {ready && user && (
-          <div className="flex items-center gap-2">
-            <p className="min-w-0 flex-1 truncate px-2 text-sm text-gray-700">
-              <span className="font-semibold">{user.nickname}</span>님
-            </p>
-            <button
-              type="button"
-              onClick={async () => {
-                await logout()
-                onNavigate?.()
-                navigate('/')
-              }}
-              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            >
-              로그아웃
-            </button>
-          </div>
-        )}
-        {ready && !user && (
-          <div className="flex gap-2">
-            <Link
-              to="/login"
-              onClick={onNavigate}
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-indigo-600 text-sm text-white hover:bg-indigo-700"
-            >
-              로그인
-            </Link>
-            <Link
-              to="/signup"
-              onClick={onNavigate}
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border text-sm text-gray-700 hover:bg-gray-50"
-            >
-              회원가입
-            </Link>
-          </div>
-        )}
-      </div>
+      {account && (
+        <div className="border-t border-gray-200 p-3">
+          {ready && user && (
+            <div className="flex items-center gap-2">
+              <p className="min-w-0 flex-1 truncate px-2 text-sm text-gray-700">
+                <span className="font-semibold">{user.nickname}</span>님
+              </p>
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout()
+                  onNavigate?.()
+                  navigate('/')
+                }}
+                className="inline-flex min-h-11 items-center rounded-md px-3 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              >
+                로그아웃
+              </button>
+            </div>
+          )}
+          {ready && !user && (
+            <div className="flex gap-2">
+              <Link
+                to="/login"
+                onClick={onNavigate}
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-indigo-600 text-sm text-white hover:bg-indigo-700"
+              >
+                로그인
+              </Link>
+              <Link
+                to="/signup"
+                onClick={onNavigate}
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border text-sm text-gray-700 hover:bg-gray-50"
+              >
+                회원가입
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

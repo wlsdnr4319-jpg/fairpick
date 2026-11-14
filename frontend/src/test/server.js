@@ -13,6 +13,9 @@ export const defaultHandlers = [
   http.get(`${API}/categories`, () => json([])),
   http.get(`${API}/tags`, () => json([])),
   http.get(`${API}/venues`, () => json([])),
+  // 위쪽 바의 '이번 주말 박람회 n개' 등. 목록이 필요한 테스트는 server.use 로 덮어쓴다
+  http.get(`${API}/fairs`, () => json({ items: [], page: 1, size: 20, total: 0 })),
+  http.post(`${API}/auth/logout`, () => new HttpResponse(null, { status: 204 })),
 ]
 
 export const server = setupServer(...defaultHandlers)

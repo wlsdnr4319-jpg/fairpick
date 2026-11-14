@@ -4,7 +4,8 @@ import { openMenu } from './helpers'
 // 로그인하지 않은 방문자가 박람회를 찾아보는 흐름 (F-01 목록, F-02 상세, F-03 필터, F-04 검색, F-05 홈)
 // 데이터: e2e_server 가 매번 넣는 시드 30건. 관리자 테스트가 박람회를 더 공개할 수 있어 개수는 고정값 대신 전후를 비교한다
 
-const countText = (page) => page.getByText(/^\d+개$/)
+// 본문의 'n개' (위쪽 바의 '이번 주말 박람회 n개' 와 구분)
+const countText = (page) => page.locator('main').getByText(/^\d+개$/)
 const countOf = async (page) => Number((await countText(page).textContent()).replace('개', ''))
 
 test('홈에서 목록으로, 목록에서 상세로', async ({ page }) => {
