@@ -346,10 +346,21 @@ function Decorations({ w, h, rand }) {
 }
 
 export default function FairCover({ fair, size = 'card', className = '' }) {
-  if (fair.image_url) {
-    return <img src={fair.image_url} alt="" className={`h-full w-full object-cover ${className}`} />
-  }
   const { w, h, motif: m, x } = SIZES[size]
+  if (fair.image_url) {
+    // width·height 는 비율 힌트(레이아웃 밀림 방지). 큰 표지(hero)는 화면 위쪽이라 바로, 카드는 보일 때 불러온다
+    return (
+      <img
+        src={fair.image_url}
+        alt=""
+        width={w}
+        height={h}
+        loading={size === 'hero' ? 'eager' : 'lazy'}
+        decoding="async"
+        className={`h-full w-full object-cover ${className}`}
+      />
+    )
+  }
   const palette = paletteFor(fair.category?.code)
   const motif = pickMotif(fair.title, fair.category?.code)
   const rand = seededRandom(fair.id)

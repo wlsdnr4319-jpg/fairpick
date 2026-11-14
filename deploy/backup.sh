@@ -16,6 +16,12 @@ docker compose -f docker-compose.prod.yml --env-file .env exec -T db \
 echo "backup: $FILE ($(du -h "$FILE" | cut -f1))"
 find "$BACKUP_DIR" -name 'fairpick-*.sql.gz' -mtime +"$KEEP_DAYS" -delete
 
+# 관리자가 올린 표지 이미지 (api 컨테이너의 /app/uploads 볼륨)
+IMG="$BACKUP_DIR/uploads-$(date +%Y%m%d-%H%M%S).tar.gz"
+docker compose -f docker-compose.prod.yml --env-file .env exec -T api tar -czf - -C /app uploads > "$IMG"
+echo "backup: $IMG ($(du -h "$IMG" | cut -f1))"
+find "$BACKUP_DIR" -name 'uploads-*.tar.gz' -mtime +"$KEEP_DAYS" -delete
+
 # 복구 리허설:
 #   gunzip -c backups/fairpick-YYYYMMDD-HHMMSS.sql.gz | \
 #     docker compose -f docker-compose.prod.yml exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" fairpick'

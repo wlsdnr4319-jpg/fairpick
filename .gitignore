@@ -9,6 +9,10 @@ __pycache__/
 node_modules/
 dist/
 
+# 관리자가 올린 표지 이미지 (개발용)
+backend/uploads/
+backend/uploads-e2e/
+
 # 환경 변수 (비밀값) — 저장소에는 .env.example만 올린다
 .env
 

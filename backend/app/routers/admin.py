@@ -5,18 +5,22 @@ GET   /api/v1/admin/fairs             전체 박람회(초안·공개·숨김) �
 GET   /api/v1/admin/fairs/{fair_id}   수정 화면용 상세
 POST  /api/v1/admin/fairs             등록
 PATCH /api/v1/admin/fairs/{fair_id}   수정, 공개·숨김
+PUT   /api/v1/admin/fairs/{fair_id}/image   표지 이미지 올리기 (multipart, 직접 찍었거나 허락받은 이미지만)
+DELETE /api/v1/admin/fairs/{fair_id}/image  표지 이미지 지우기 (일러스트 표지로 돌아감)
 
 수집 검수(crawled-items) API 는 app/routers/admin_crawl.py 에 있다.
 """
 
 from typing import Annotated
 
-from fastapi import APIRouter, Path, Query, status
+from fastapi import APIRouter, File, Form, Path, Query, UploadFile, status
 
+from app.core.config import get_settings
 from app.core.deps import CurrentAdmin, DbSession, Now
+from app.core.errors import AppError
 from app.schemas.admin import AdminFair, AdminFairRow, FairCreate, FairStatus, FairUpdate
 from app.schemas.fair import Page
-from app.services import admin_fairs
+from app.services import admin_fairs, images
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -50,6 +54,33 @@ def create_fair(_: CurrentAdmin, db: DbSession, now: Now, body: FairCreate):
 def update_fair(admin: CurrentAdmin, db: DbSession, now: Now, fair_id: Annotated[int, Path(ge=1)], body: FairUpdate):
     admin_fairs.update(db, fair_id, body, now, actor_id=admin.id)
     db.commit()
+    return admin_fairs.to_admin(db, fair_id)
+
+
+@router.put("/fairs/{fair_id}/image", response_model=AdminFair)
+def upload_image(
+    _: CurrentAdmin,
+    db: DbSession,
+    fair_id: Annotated[int, Path(ge=1)],
+    file: Annotated[UploadFile, File()],
+    rights_confirmed: Annotated[bool, Form()] = False,
+):
+    # 공식 포스터를 그대로 올리는 일을 막으려고 권리 확인을 서버에서도 요구한다
+    if not rights_confirmed:
+        raise AppError(422, "RIGHTS_NOT_CONFIRMED", "직접 찍었거나 사용 허락을 받은 이미지인지 확인해 주세요")
+    # 한도보다 1바이트만 더 읽어 큰 파일을 메모리에 다 올리지 않고도 거절한다
+    data = file.file.read(get_settings().upload_max_bytes + 1)
+    old = images.set_image(db, admin_fairs.load(db, fair_id), data)
+    db.commit()
+    images.remove_file(old)
+    return admin_fairs.to_admin(db, fair_id)
+
+
+@router.delete("/fairs/{fair_id}/image", response_model=AdminFair)
+def delete_image(_: CurrentAdmin, db: DbSession, fair_id: Annotated[int, Path(ge=1)]):
+    old = images.clear_image(db, admin_fairs.load(db, fair_id))
+    db.commit()
+    images.remove_file(old)
     return admin_fairs.to_admin(db, fair_id)
 
 
