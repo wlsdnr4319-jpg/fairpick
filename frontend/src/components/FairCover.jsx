@@ -1,6 +1,9 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { paletteFor, pickMotif, seededRandom } from '../utils/cover'
+import { stockKey, stockSrc } from '../utils/stockPhotos'
 
-// 박람회 표지. 관리자가 넣은 이미지(image_url)가 있으면 그걸, 없으면 제목·카테고리로 고른 일러스트를 그린다.
+// 박람회 표지. 이미지 → 예시 사진 → 일러스트 순서로 고른다 (아래 FairCover 설명).
 // 그림은 100×100 좌표로 그리고, 표지 크기에 맞춰 옮긴다. 장식(원·점)은 박람회 id 로 조금씩 달라진다.
 
 const SIZES = {
@@ -345,8 +348,45 @@ function Decorations({ w, h, rand }) {
   )
 }
 
-export default function FairCover({ fair, size = 'card', className = '' }) {
+// 표지 고르는 순서: ① 관리자가 올린 이미지(직접 찍었거나 허락받은 사진) ② 주제가 같은 무료 예시 사진(Pexels)
+// ③ 우리가 그린 일러스트. 예시 사진은 그 박람회 사진이 아니라서 '예시 사진' 표시를 붙이고, 못 불러오면 ③ 으로 바꾼다.
+export default function FairCover({ fair, size = 'card', className = '', credit = false }) {
   const { w, h, motif: m, x } = SIZES[size]
+  const motif = pickMotif(fair.title, fair.category?.code)
+  const photo = fair.image_url ? null : stockKey(motif, fair.id)
+  const [failed, setFailed] = useState(null) // 불러오지 못한 예시 사진 키 (박람회가 바뀌면 자연히 무효)
+
+  if (photo && failed !== photo) {
+    return (
+      <>
+        <img
+          src={stockSrc(photo, size === 'hero' ? 1280 : 640)}
+          srcSet={`${stockSrc(photo, 640)} 640w, ${stockSrc(photo, 1280)} 1280w`}
+          sizes={size === 'hero' ? '(min-width: 1024px) 960px, 100vw' : '(min-width: 640px) 320px, 100vw'}
+          alt=""
+          width={w}
+          height={h}
+          loading={size === 'hero' ? 'eager' : 'lazy'}
+          decoding="async"
+          onError={() => setFailed(photo)}
+          data-cover="stock"
+          className={`h-full w-full object-cover ${className}`}
+        />
+        {/* 실제 행사 사진으로 오해하지 않게. 카드는 글자만, 상세는 출처 링크까지 */}
+        <span className="absolute right-2 bottom-2 rounded bg-black/55 px-1.5 py-0.5 text-[11px] leading-tight text-white">
+          예시 사진
+          {credit && (
+            <>
+              {' · '}
+              <Link to="/credits" className="underline underline-offset-2">
+                출처
+              </Link>
+            </>
+          )}
+        </span>
+      </>
+    )
+  }
   if (fair.image_url) {
     // width·height 는 비율 힌트(레이아웃 밀림 방지). 큰 표지(hero)는 화면 위쪽이라 바로, 카드는 보일 때 불러온다
     return (
@@ -362,7 +402,6 @@ export default function FairCover({ fair, size = 'card', className = '' }) {
     )
   }
   const palette = paletteFor(fair.category?.code)
-  const motif = pickMotif(fair.title, fair.category?.code)
   const rand = seededRandom(fair.id)
   const gradientId = `cover-bg-${size}-${fair.id}`
   const Motif = MOTIFS[motif]

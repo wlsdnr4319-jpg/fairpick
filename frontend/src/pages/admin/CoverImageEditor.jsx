@@ -8,7 +8,7 @@ const MAX_BYTES = 5 * 1024 * 1024 // 서버 한도와 같다 (UPLOAD_MAX_BYTES)
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 
 // 표지 이미지 (박람회 수정 화면). 공식 포스터는 저작권 때문에 올리지 않는다 (11-14 결정):
-// 직접 찍은 사진이나 주최 측에 사용 허락을 받은 이미지만. 없으면 일러스트 표지를 그린다.
+// 직접 찍은 사진이나 주최 측에 사용 허락을 받은 이미지만. 없으면 예시 사진이나 일러스트 표지를 쓴다.
 // 박람회 폼과 따로 바로 저장한다 (폼 안에 두면 <form> 이 겹치고, 저장 버튼 하나에 파일 전송이 섞인다)
 export default function CoverImageEditor({ fair }) {
   const qc = useQueryClient()
@@ -32,7 +32,7 @@ export default function CoverImageEditor({ fair }) {
   })
   const remove = useMutation({
     mutationFn: () => deleteFairImage(fair.id),
-    onSuccess: (saved) => done(saved, '이미지를 지우고 일러스트 표지로 돌아갔어요'),
+    onSuccess: (saved) => done(saved, '이미지를 지우고 기본 표지로 돌아갔어요'),
     onError: (err) => setMessage(errorMessage(err)),
   })
   const busy = upload.isPending || remove.isPending
@@ -57,11 +57,11 @@ export default function CoverImageEditor({ fair }) {
       <h2 id={`${inputId}-title`} className="font-semibold">
         표지 이미지
       </h2>
-      <div className="h-36 w-64 overflow-hidden rounded-xl bg-gray-100">
+      <div className="relative h-36 w-64 max-w-full overflow-hidden rounded-xl bg-gray-100">
         <FairCover fair={preview} />
       </div>
       <p className="text-sm text-gray-600">
-        {fair.image_url ? '올린 이미지를 쓰고 있어요.' : '이미지가 없어서 제목·카테고리에 맞춘 일러스트를 그리고 있어요.'} 공식 포스터·홍보물은
+        {fair.image_url ? '올린 이미지를 쓰고 있어요.' : '이미지가 없어서 주제가 같은 예시 사진(없으면 일러스트)을 쓰고 있어요.'} 공식 포스터·홍보물은
         저작권이 있어 올리지 않아요.
       </p>
 
@@ -100,7 +100,7 @@ export default function CoverImageEditor({ fair }) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => window.confirm('표지 이미지를 지우고 일러스트 표지로 돌아갈까요?') && remove.mutate()}
+            onClick={() => window.confirm('표지 이미지를 지우고 기본 표지(예시 사진·일러스트)로 돌아갈까요?') && remove.mutate()}
             className="min-h-11 rounded-lg border px-4 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             {remove.isPending ? '지우는 중…' : '이미지 지우기'}

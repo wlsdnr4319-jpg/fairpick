@@ -6,7 +6,7 @@ GET   /api/v1/admin/fairs/{fair_id}   수정 화면용 상세
 POST  /api/v1/admin/fairs             등록
 PATCH /api/v1/admin/fairs/{fair_id}   수정, 공개·숨김
 PUT   /api/v1/admin/fairs/{fair_id}/image   표지 이미지 올리기 (multipart, 직접 찍었거나 허락받은 이미지만)
-DELETE /api/v1/admin/fairs/{fair_id}/image  표지 이미지 지우기 (일러스트 표지로 돌아감)
+DELETE /api/v1/admin/fairs/{fair_id}/image  표지 이미지 지우기 (예시 사진·일러스트 표지로 돌아감)
 
 수집 검수(crawled-items) API 는 app/routers/admin_crawl.py 에 있다.
 """

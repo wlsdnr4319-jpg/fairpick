@@ -27,8 +27,8 @@ export default function FairDetail() {
 
   return (
     <article className="space-y-8 pb-20 md:pb-0">
-      <div className="h-44 overflow-hidden rounded-2xl bg-gray-100 sm:h-56">
-        <FairCover fair={fair} size="hero" className={fair.progress === 'ended' ? 'grayscale' : ''} />
+      <div className="relative h-44 overflow-hidden rounded-2xl bg-gray-100 sm:h-56">
+        <FairCover fair={fair} size="hero" credit className={fair.progress === 'ended' ? 'grayscale' : ''} />
       </div>
       <header className="space-y-3">
         <div className="flex items-center gap-2">

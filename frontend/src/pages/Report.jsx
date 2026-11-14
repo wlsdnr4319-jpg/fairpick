@@ -49,7 +49,7 @@ export default function Report() {
       </header>
 
       {overview.data && (
-        <section aria-label="요약" className="grid grid-cols-3 gap-3">
+        <section aria-label="요약" className="grid gap-3 sm:grid-cols-3">
           <Kpi label="박람회" value={`${overview.data.total}개`} />
           <Kpi label="무료로 갈 수 있는 비율" value={`${Math.round(overview.data.free_ratio * 100)}%`} note="현장 또는 사전등록 무료" />
           <Kpi label="평균 개최 기간" value={`${overview.data.avg_days}일`} />
@@ -66,9 +66,9 @@ export default function Report() {
 
 function Kpi({ label, value, note }) {
   return (
-    <div className="rounded-xl border p-4">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-x-3 rounded-xl border p-4 sm:block">
       <p className="text-xs text-gray-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
+      <p className="row-span-2 text-2xl font-bold sm:mt-1">{value}</p>
       {note && <p className="text-xs text-gray-400">{note}</p>}
     </div>
   )
@@ -77,8 +77,9 @@ function Kpi({ label, value, note }) {
 function Section({ title, lead, action, children }) {
   return (
     <section className="space-y-3">
-      <div className="flex items-end justify-between gap-3">
-        <div>
+      {/* 휴대폰은 제목 아래에 버튼 (옆에 두면 버튼 글자가 한 글자씩 세로로 꺾였다) */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold">{title}</h2>
           {lead && <p className="text-sm text-gray-600">{lead}</p>}
         </div>
@@ -103,11 +104,11 @@ function MonthlySection({ year, setYear, rows, categories }) {
       title={`${year}년 월별 개최 수`}
       lead={peak.total ? `${Number(peak.month.slice(5))}월에 가장 많이 열렸어요 (${peak.total}개)` : '이 해의 데이터가 없어요'}
       action={
-        <div className="flex gap-2 text-sm">
+        <div className="flex shrink-0 gap-2 text-sm">
           <select aria-label="연도" className="min-h-11 rounded-lg border px-2" value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {[2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}년</option>)}
           </select>
-          <button type="button" className="min-h-11 rounded-lg border px-3" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
+          <button type="button" className="min-h-11 rounded-lg border px-3 whitespace-nowrap" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
             {asTable ? '차트로 보기' : '표로 보기'}
           </button>
         </div>
@@ -115,7 +116,7 @@ function MonthlySection({ year, setYear, rows, categories }) {
     >
       {asTable ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-right text-sm">
+          <table className="w-full text-right text-xs sm:min-w-[560px] sm:text-sm">
             <thead className="border-b text-gray-500">
               <tr>
                 <th className="py-2 text-left">월</th>
@@ -179,7 +180,7 @@ function CategorySection({ rows }) {
     <Section title="카테고리별 개최 수" lead={top?.count ? `${top.name} 박람회가 가장 많아요` : null}>
       <HBar data={rows} dataKey="count" nameKey="name" height={rows.length * 36} />
       <div className="overflow-x-auto">
-        <table className="w-full text-right text-sm">
+        <table className="w-full text-right text-xs sm:text-sm">
           <thead className="border-b text-gray-500">
             <tr>
               <th className="py-2 text-left">카테고리</th>
@@ -256,14 +257,14 @@ function YearlySection({ data }) {
       title="연도별 개최 수"
       lead={`${basis}가장 적은 해는 ${low.year}년(${low.total}개), 가장 많은 해는 ${high.year}년(${high.total}개)이에요`}
       action={
-        <button type="button" className="min-h-11 rounded-lg border px-3 text-sm" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
+        <button type="button" className="min-h-11 self-start rounded-lg border px-3 text-sm whitespace-nowrap" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
           {asTable ? '차트로 보기' : '표로 보기'}
         </button>
       }
     >
       {asTable ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[420px] text-right text-sm">
+          <table className="w-full text-right text-xs sm:min-w-[420px] sm:text-sm">
             <thead className="border-b text-gray-500">
               <tr>
                 <th className="py-2 text-left">연도</th>
@@ -328,26 +329,31 @@ function ThemeMonthSection({ data }) {
       lead={busiest.map((t) => `${t.theme}${topicParticle(t.theme)} ${months(t.peak_months)}`).join(', ') + '에 가장 많이 열렸어요'}
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-0.5 text-center text-xs">
+        <table className="w-full border-separate border-spacing-px text-center text-[10px] sm:min-w-[720px] sm:border-spacing-0.5 sm:text-xs">
           <caption className="sr-only">주제와 달별 개최 수 ({years}년 합계, 개막일 기준)</caption>
           <thead className="text-gray-500">
             <tr>
               <th className="py-1 text-left font-normal">주제</th>
-              {Array.from({ length: 12 }, (_, i) => <th key={i} className="font-normal">{i + 1}월</th>)}
-              <th className="pl-2 text-right font-normal">합계</th>
+              {Array.from({ length: 12 }, (_, i) => (
+                <th key={i} className="font-normal">
+                  {i + 1}
+                  <span className="hidden sm:inline">월</span>
+                </th>
+              ))}
+              <th className="hidden pl-2 text-right font-normal sm:table-cell">합계</th>
             </tr>
           </thead>
           <tbody>
             {themes.map((t) => (
               <tr key={t.theme}>
-                <th scope="row" className="whitespace-nowrap py-1 pr-2 text-left font-medium text-gray-700">{t.theme}</th>
+                <th scope="row" className="max-w-16 py-1 pr-1 text-left font-medium break-words text-gray-700 sm:max-w-none sm:pr-2 sm:whitespace-nowrap">{t.theme}</th>
                 {t.by_month.map((n, i) => {
                   const step = n === 0 ? -1 : Math.min(HEAT.length - 1, Math.floor((n / max) * HEAT.length))
                   return (
                     <td
                       key={i}
                       title={`${t.theme} · ${i + 1}월: ${n}개 (${years}년 합계)`}
-                      className="h-9 rounded"
+                      className="h-8 rounded sm:h-9"
                       style={{
                         background: step < 0 ? '#f5f5f3' : HEAT[step],
                         color: step >= 4 ? '#fff' : step < 0 ? '#b5b4ad' : '#1f1f1d',
@@ -357,17 +363,17 @@ function ThemeMonthSection({ data }) {
                     </td>
                   )
                 })}
-                <td className="pl-2 text-right font-semibold text-gray-700">{t.total}</td>
+                <td className="hidden pl-2 text-right font-semibold text-gray-700 sm:table-cell">{t.total}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="flex items-center gap-2 text-xs text-gray-500" aria-hidden="true">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500" aria-hidden="true">
         <span>적음</span>
         {HEAT.map((c) => <span key={c} className="h-3 w-6 rounded-sm" style={{ background: c }} />)}
         <span>많음</span>
-        <span className="ml-auto">{excludedNote(data)}</span>
+        <span className="w-full sm:ml-auto sm:w-auto">{excludedNote(data)}</span>
       </div>
     </Section>
   )

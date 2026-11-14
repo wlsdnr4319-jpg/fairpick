@@ -16,9 +16,10 @@ export default function AdminReview() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* 휴대폰은 수집 버튼들이 제목 아래로 줄바꿈된다 (한 줄이면 옆으로 넘쳤다) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">수집 검수 {data ? `(${data.total})` : ''}</h1>
-        <div className="flex gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
           <Sources onRun={done} />
           <Link to="/admin/crawl-runs" className="underline">
             수집 이력
@@ -49,7 +50,7 @@ function Sources({ onRun }) {
     onError: (e) => setMsg(errorMessage(e)),
   })
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex flex-wrap items-center gap-2">
       {sources.map((s) => (
         <button key={s.id} type="button" disabled={run.isPending} onClick={() => run.mutate(s.id)} className="rounded border px-2 py-1">
           {s.venue} 지금 수집

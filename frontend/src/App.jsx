@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
 import { MyVisits, ResetPassword, Unsubscribe } from './pages/Account.jsx'
 import Calendar from './pages/Calendar.jsx'
+import Credits from './pages/Credits.jsx'
 import FairDetail from './pages/FairDetail.jsx'
 import FairList from './pages/FairList.jsx'
 import Home from './pages/Home.jsx'
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/credits" element={<Credits />} />
 
         <Route element={<GuestOnlyRoute />}>
           <Route path="/login" element={<Login />} />

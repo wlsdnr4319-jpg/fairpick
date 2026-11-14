@@ -2,13 +2,22 @@ import { expect, test } from '@playwright/test'
 
 // 캘린더 (F-17), 통계 리포트 (F-19). 시드 데이터는 날짜가 고정이라 달을 주소로 정해 본다
 
-test('캘린더: 여러 날 열리는 박람회가 기간의 모든 날에 있고, 누르면 상세로 간다', async ({ page }) => {
+test('캘린더: 여러 날 열리는 박람회가 기간의 모든 날에 있고, 누르면 상세로 간다', async ({ page }, testInfo) => {
   await page.goto('/calendar?month=2026-11')
   await expect(page.getByRole('heading', { name: '2026년 11월' })).toBeVisible()
 
   // 제25회 서울카페쇼: 2026-11-11 ~ 11-14
   const cafe = page.getByRole('link', { name: '제25회 서울카페쇼' })
-  await expect(cafe).toHaveCount(4)
+  if (testInfo.project.name === 'mobile') {
+    // 휴대폰: 칸에는 개수만, 날짜를 누르면 아래 목록에 나온다
+    await page.getByRole('button', { name: /^11월 10일, 박람회/ }).click()
+    await expect(page.getByRole('heading', { name: /^11월 10일 박람회/ })).toBeVisible()
+    await expect(cafe).toHaveCount(0)
+    await page.getByRole('button', { name: /^11월 12일, 박람회/ }).click()
+    await expect(cafe).toHaveCount(1)
+  } else {
+    await expect(cafe).toHaveCount(4)
+  }
   await cafe.first().click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('제25회 서울카페쇼')
 
@@ -38,4 +47,22 @@ test('통계: 요약 숫자와 차트를 그리고, 차트는 표로도 볼 수 
 
   const categories = page.locator('section').filter({ has: page.getByRole('heading', { name: '카테고리별 개최 수' }) })
   await expect(categories.getByRole('row', { name: /식음료/ })).toBeVisible()
+})
+
+// 휴대폰에서 화면이 옆으로 밀리지 않는지 (가로 스크롤이 생기면 글자·버튼이 잘려 보인다)
+test('휴대폰: 주요 화면이 옆으로 넘치지 않는다', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', '휴대폰 폭에서만 본다')
+  await page.goto('/fairs')
+  const detail = await page.getByRole('article').first().getByRole('link').first().getAttribute('href')
+
+  for (const path of ['/', '/fairs', detail, '/calendar?month=2026-11', '/report', '/credits', '/login', '/signup']) {
+    await page.goto(path)
+    await expect(page.locator('main')).not.toBeEmpty()
+    await page.waitForLoadState('networkidle')
+    const { scroll, view } = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth,
+      view: document.documentElement.clientWidth,
+    }))
+    expect(scroll, `${path} 가로 넘침`).toBeLessThanOrEqual(view)
+  }
 })
