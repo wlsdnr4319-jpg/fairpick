@@ -31,7 +31,7 @@ from sqlalchemy.orm import selectinload
 from app.core.deps import CurrentUser, DbSession, OptionalUser
 from app.core.errors import AppError
 from app.core.timeutil import to_local
-from app.models import Fair, FairTag, Tag, TagVote, Visit, VisitLike
+from app.models import Bookmark, Fair, FairTag, Tag, TagVote, Visit, VisitLike
 from app.schemas.auth import MessageOut, UnsubscribeIn
 from app.schemas.engagement import (
     CalendarItem,
@@ -65,6 +65,26 @@ def _fair_or_404(db, fair_id: int) -> Fair:
 # ---------------------------------------------------------------------------
 
 
+_HALL_RANGE = re.compile(r"(\d+)\s*~\s*(\d+)")
+
+
+def hall_count(hall: str | None) -> int:
+    """'A홀' 1, 'A·B홀' 2, '1~5홀' 5, '전관' 은 큰 값. 모르면 0."""
+    if not hall:
+        return 0
+    if "전관" in hall:
+        return 6
+    if m := _HALL_RANGE.search(hall):
+        return max(1, int(m.group(2)) - int(m.group(1)) + 1)
+    return len([p for p in re.split(r"[·,/&+]", hall) if p.strip()])
+
+
+def calendar_scale(bookmarks: int, hall: str | None, days: int) -> int:
+    """행사 규모 점수. 실제 관람객 수는 공개 자료가 없어서, 우리가 가진 신호로 어림한다:
+    북마크(관심) 1개당 3점 + 쓰는 홀 수(전관 6, 최대 6) + 기간(일, 최대 10)."""
+    return bookmarks * 3 + min(hall_count(hall), 6) + min(days, 10)
+
+
 @router.get("/fairs/calendar", response_model=list[CalendarItem])
 def fair_calendar(db: DbSession, month: Annotated[str, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]):
     y, m = map(int, month.split("-"))
@@ -75,6 +95,14 @@ def fair_calendar(db: DbSession, month: Annotated[str, Query(pattern=r"^\d{4}-(0
         .options(selectinload(Fair.category), selectinload(Fair.venue))
         .order_by(Fair.start_date, Fair.id)
     ).all()
+    counts: dict[int, int] = {}
+    if fairs:
+        rows = db.execute(
+            select(Bookmark.fair_id, func.count())
+            .where(Bookmark.fair_id.in_([f.id for f in fairs]))
+            .group_by(Bookmark.fair_id)
+        )
+        counts = dict(rows.all())
     return [
         CalendarItem(
             id=f.id,
@@ -82,7 +110,12 @@ def fair_calendar(db: DbSession, month: Annotated[str, Query(pattern=r"^\d{4}-(0
             start_date=f.start_date,
             end_date=f.end_date,
             category=f.category.code,
+            category_name=f.category.name,
             venue=f.venue.name,
+            region=f.venue.region,
+            hall=f.hall,
+            bookmark_count=counts.get(f.id, 0),
+            scale=calendar_scale(counts.get(f.id, 0), f.hall, (f.end_date - f.start_date).days + 1),
         )
         for f in fairs
     ]

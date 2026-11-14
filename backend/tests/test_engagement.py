@@ -137,6 +137,33 @@ def test_calendar_month(db, client):
     assert client.get("/api/v1/fairs/calendar?month=2026-13").status_code == 422
 
 
+def test_calendar_item_details_and_scale(db, client):
+    cat, ven = f.category(db), f.venue(db, region="서울")
+    day = date(2026, 11, 7)
+    small = f.fair(db, category=cat, venue=ven, title="작은 행사", start=day, end=day, hall="세미나실")
+    start, end = date(2026, 11, 5), date(2026, 11, 8)
+    big = f.fair(db, category=cat, venue=ven, title="큰 행사", start=start, end=end, hall="전관")
+    f.bookmark(db, f.user(db), big)
+    items = {i["title"]: i for i in client.get("/api/v1/fairs/calendar?month=2026-11").json()}
+    assert items["큰 행사"]["bookmark_count"] == 1
+    assert items["큰 행사"]["hall"] == "전관" and items["큰 행사"]["region"] == "서울"
+    assert items["큰 행사"]["category_name"] == cat.name
+    # 북마크 1(3점) + 전관(6) + 4일(4) = 13, 작은 행사는 홀 1 + 1일 = 2
+    assert items["큰 행사"]["scale"] == 13
+    assert items["작은 행사"]["scale"] == 2
+    assert small.id != big.id
+
+
+@pytest.mark.parametrize(
+    ("hall", "count"),
+    [(None, 0), ("A홀", 1), ("A·B홀", 2), ("1~5홀", 5), ("2, 3홀", 2), ("전관", 6)],
+)
+def test_hall_count(hall, count):
+    from app.routers.engagement import hall_count
+
+    assert hall_count(hall) == count
+
+
 def test_crawl_alert_after_two_failures(db):
     f.admin(db)
     src = CrawlSource(venue_id=f.venue(db).id, parser_key="x", list_url="https://x")

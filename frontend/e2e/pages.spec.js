@@ -2,26 +2,25 @@ import { expect, test } from '@playwright/test'
 
 // 캘린더 (F-17), 통계 리포트 (F-19). 시드 데이터는 날짜가 고정이라 달을 주소로 정해 본다
 
-test('캘린더: 여러 날 열리는 박람회가 기간의 모든 날에 있고, 누르면 상세로 간다', async ({ page }, testInfo) => {
+test('캘린더: 날짜를 누르면 그날 행사 목록이 나오고, 누르면 상세로 간다', async ({ page }) => {
   await page.goto('/calendar?month=2026-11')
   await expect(page.getByRole('heading', { name: '2026년 11월' })).toBeVisible()
+  const panel = page.getByRole('region', { name: /박람회 \d+개/ })
+  const cafe = panel.getByRole('link', { name: /제25회 서울카페쇼/ })
 
-  // 제25회 서울카페쇼: 2026-11-11 ~ 11-14
-  const cafe = page.getByRole('link', { name: '제25회 서울카페쇼' })
-  if (testInfo.project.name === 'mobile') {
-    // 휴대폰: 칸에는 개수만, 날짜를 누르면 아래 목록에 나온다
-    await page.getByRole('button', { name: /^11월 10일, 박람회/ }).click()
-    await expect(page.getByRole('heading', { name: /^11월 10일 박람회/ })).toBeVisible()
-    await expect(cafe).toHaveCount(0)
-    await page.getByRole('button', { name: /^11월 12일, 박람회/ }).click()
-    await expect(cafe).toHaveCount(1)
-  } else {
-    await expect(cafe).toHaveCount(4)
-  }
-  await cafe.first().click()
+  // 제25회 서울카페쇼: 2026-11-11 ~ 11-14. 10일에는 없고 12일에는 있다
+  await page.getByRole('button', { name: /^11월 10일, 박람회/ }).click()
+  await expect(page).toHaveURL('/calendar?month=2026-11&day=10')
+  await expect(page.getByRole('heading', { name: /^11월 10일 \(화\)/ })).toBeVisible()
+  await expect(cafe).toHaveCount(0)
+  await page.getByRole('button', { name: /^11월 12일, 박람회/ }).click()
+  await expect(cafe).toHaveCount(1)
+  await cafe.click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('제25회 서울카페쇼')
 
+  // 뒤로 가면 고른 날이 그대로 (주소에 남아 있다)
   await page.goBack()
+  await expect(page.getByRole('button', { name: /^11월 12일, 박람회/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: '다음 달' }).click()
   await expect(page).toHaveURL('/calendar?month=2026-12')
   await expect(page.getByRole('heading', { name: '2026년 12월' })).toBeVisible()
