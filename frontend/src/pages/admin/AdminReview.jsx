@@ -205,12 +205,12 @@ function ReviewItem({ item, onDone }) {
       {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
         {!item.fair_id && !open && (
-          <button type="button" className="min-h-10 rounded bg-indigo-600 px-3 text-sm text-white" onClick={() => setOpen(true)}>
+          <button type="button" className="min-h-10 rounded bg-indigo-600 hover:bg-indigo-700 px-3 text-sm text-white" onClick={() => setOpen(true)}>
             정보 채우고 승인
           </button>
         )}
         {(open || item.fair_id) && (
-          <button type="button" disabled={act.isPending || (!item.fair_id && (!form.category || (unmatched && !venueId)))} className="min-h-10 rounded bg-indigo-600 px-3 text-sm text-white disabled:opacity-50" onClick={approve}>
+          <button type="button" disabled={act.isPending || (!item.fair_id && (!form.category || (unmatched && !venueId)))} className="min-h-10 rounded bg-indigo-600 hover:bg-indigo-700 px-3 text-sm text-white disabled:opacity-50" onClick={approve}>
             {item.fair_id ? '변경 확인' : '승인해 공개'}
           </button>
         )}

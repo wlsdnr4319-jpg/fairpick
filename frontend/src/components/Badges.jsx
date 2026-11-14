@@ -4,7 +4,7 @@ import { statusLabel } from '../utils/format'
 const STATUS_STYLE = {
   ongoing: 'bg-green-600 text-white',
   upcoming: 'bg-indigo-600 text-white',
-  ended: 'bg-gray-400 text-white',
+  ended: 'bg-gray-600 text-white',
 }
 
 export function StatusBadge({ progress, dDay }) {

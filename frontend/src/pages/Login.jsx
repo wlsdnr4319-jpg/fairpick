@@ -33,7 +33,7 @@ export default function Login() {
         <Field label="이메일" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} autoComplete="email" />
         <Field label="비밀번호" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} autoComplete="current-password" />
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-        <button disabled={busy} className="min-h-11 w-full rounded-lg bg-indigo-600 text-white disabled:opacity-60">
+        <button disabled={busy} className="min-h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">
           {busy ? '로그인 중…' : '로그인'}
         </button>
       </form>
@@ -63,6 +63,8 @@ export function Field({ label, onChange, ...props }) {
       <span className="text-sm text-gray-700">{label}</span>
       <input
         required
+        // 이메일·비밀번호는 맞춤법 검사 밑줄이 뜨지 않게
+        spellCheck={props.type === 'email' || props.type === 'password' ? false : undefined}
         {...props}
         onChange={(e) => onChange(e.target.value)}
         className="min-h-11 w-full rounded-lg border border-gray-300 px-3"

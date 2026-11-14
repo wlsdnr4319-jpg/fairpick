@@ -42,7 +42,7 @@ export default function AdminDashboard() {
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Link to="/admin/fairs/new" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 text-white">
+        <Link to="/admin/fairs/new" className="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white">
           새 박람회 등록
         </Link>
         <Link to="/admin/review" className="inline-flex min-h-11 items-center rounded-lg border px-4">

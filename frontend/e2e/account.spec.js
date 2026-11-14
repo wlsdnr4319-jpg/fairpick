@@ -27,7 +27,7 @@ test('가입하고 북마크하면 마이페이지에 모이고, 해제하면 �
 
   await page.goto('/mypage')
   await expect(page.getByRole('heading', { name: `${account.nickname}님의 북마크` })).toBeVisible()
-  const card = main.locator('a', { has: page.getByRole('heading', { name: TITLE }) })
+  const card = main.locator('article', { has: page.getByRole('heading', { name: TITLE }) })
   await expect(card).toBeVisible()
 
   const removed = bookmarkSaved(page, 'DELETE')

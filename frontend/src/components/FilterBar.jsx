@@ -179,11 +179,11 @@ function SearchBox({ initial, onSearch }) {
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="박람회 이름이나 키워드"
+        placeholder="예: 커피, 캠핑, 일러스트…"
         aria-label="검색어"
-        className="min-h-11 flex-1 rounded-lg border border-gray-300 px-3"
+        className="min-h-11 min-w-0 flex-1 rounded-lg border border-gray-300 px-3"
       />
-      <button type="submit" className="min-h-11 rounded-lg bg-indigo-600 px-4 text-white">
+      <button type="submit" className="min-h-11 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white">
         검색
       </button>
     </form>

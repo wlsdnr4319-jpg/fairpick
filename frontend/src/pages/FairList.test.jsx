@@ -42,8 +42,8 @@ describe('박람회 목록', () => {
     const heading = await screen.findByRole('heading', { name: '끝난 박람회' })
     expect(screen.getAllByRole('heading', { name: '끝난 박람회' })).toHaveLength(1)
     // 제목은 진행 예정 카드 뒤, 끝난 카드 앞
-    const upcoming = screen.getByText('다음 주 박람회').closest('a')
-    const ended = screen.getByText('지난달 박람회').closest('a')
+    const upcoming = screen.getByText('다음 주 박람회').closest('article')
+    const ended = screen.getByText('지난달 박람회').closest('article')
     expect(upcoming.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(heading.compareDocumentPosition(ended) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(ended).toHaveAttribute('data-ended', 'true')
@@ -109,7 +109,7 @@ describe('박람회 목록', () => {
 })
 
 describe('목록에서 북마크', () => {
-  const card = (title) => screen.getByText(title).closest('a')
+  const card = (title) => screen.getByText(title).closest('article')
 
   it('비로그인이면 지금 주소를 붙여 로그인 화면으로 보낸다', async () => {
     listEndpoint(page([makeFair({ title: '커피 엑스포' })]))

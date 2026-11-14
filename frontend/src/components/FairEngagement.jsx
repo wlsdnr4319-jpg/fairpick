@@ -137,6 +137,7 @@ export function MyVisit({ fairId }) {
       </div>
       <textarea
         rows={3}
+        aria-label="관람 메모"
         maxLength={2000}
         placeholder="주차, 붐빈 시간, 꼭 볼 부스… 다녀온 기록을 남겨 보세요"
         className="w-full rounded border p-2 text-sm"
@@ -149,7 +150,7 @@ export function MyVisit({ fairId }) {
       </label>
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button disabled={save.isPending} className="min-h-11 rounded-lg bg-indigo-600 px-4 text-sm text-white">저장</button>
+        <button disabled={save.isPending} className="min-h-11 rounded-lg bg-indigo-600 px-4 text-sm text-white hover:bg-indigo-700 disabled:opacity-60">{save.isPending ? '저장 중…' : '저장'}</button>
         <button type="button" onClick={() => setEditing(false)} className="min-h-11 rounded-lg border px-4 text-sm">취소</button>
         {mine && (
           <button type="button" onClick={() => window.confirm('관람 노트를 지울까요?') && remove.mutate()} className="ml-auto min-h-11 px-2 text-sm text-red-600">
