@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { errorCode, errorMessage } from '../api/client'
 import { StatusBadge, TagChip } from '../components/Badges'
 import BookmarkButton from '../components/BookmarkButton'
+import FairCover from '../components/FairCover'
 import { MyVisit, Reviews, TagVotes } from '../components/FairEngagement'
 import { ErrorState } from '../components/States'
 import VenueMap from '../components/VenueMap'
@@ -26,6 +27,9 @@ export default function FairDetail() {
 
   return (
     <article className="space-y-8 pb-20 md:pb-0">
+      <div className="h-44 overflow-hidden rounded-2xl bg-gray-100 sm:h-56">
+        <FairCover fair={fair} size="hero" className={fair.progress === 'ended' ? 'grayscale' : ''} />
+      </div>
       <header className="space-y-3">
         <div className="flex items-center gap-2">
           <StatusBadge progress={fair.progress} dDay={fair.d_day} />
