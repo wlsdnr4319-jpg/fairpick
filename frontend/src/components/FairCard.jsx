@@ -2,17 +2,7 @@ import { Link } from 'react-router-dom'
 import { formatDistance, formatPeriod } from '../utils/format'
 import { StatusBadge, TagChip } from './Badges'
 import BookmarkButton from './BookmarkButton'
-
-// 이미지가 없으면 카테고리 기본 이미지 대신 카테고리 색 배경을 쓴다 (원문 이미지는 저장하지 않는다)
-const CATEGORY_BG = {
-  food: 'from-amber-200 to-orange-300',
-  culture: 'from-pink-200 to-rose-300',
-  lifestyle: 'from-teal-200 to-emerald-300',
-  leisure: 'from-sky-200 to-blue-300',
-  pet: 'from-yellow-200 to-lime-300',
-  family: 'from-violet-200 to-purple-300',
-  tech: 'from-slate-300 to-gray-400',
-}
+import FairCover from './FairCover'
 
 export default function FairCard({ fair, compact = false }) {
   // 끝난 행사는 목록 맨 뒤에 오고(API 정렬), 카드도 흐리게 보여 진행 중·예정과 구분한다
@@ -25,11 +15,12 @@ export default function FairCard({ fair, compact = false }) {
         compact ? 'w-64 shrink-0' : ''
       } ${ended ? 'opacity-60 hover:opacity-100' : ''}`}
     >
-      <div className={`relative h-36 bg-gradient-to-br ${CATEGORY_BG[fair.category.code] ?? 'from-gray-200 to-gray-300'}`}>
-        {fair.image_url && <img src={fair.image_url} alt="" className="h-full w-full object-cover" />}
-        {!fair.image_url && (
-          <span className="absolute bottom-2 left-3 text-sm font-semibold text-white/90">{fair.category.name}</span>
-        )}
+      <div className="relative h-36 bg-gray-100">
+        {/* 공식 포스터는 저장하지 않고, 이미지가 없으면 제목·카테고리에 맞춘 일러스트를 그린다 */}
+        <FairCover fair={fair} className={ended ? 'grayscale' : ''} />
+        <span className="absolute bottom-2 left-3 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold text-gray-800">
+          {fair.category.name}
+        </span>
         <div className="absolute left-3 top-3">
           <StatusBadge progress={fair.progress} dDay={fair.d_day} />
         </div>
