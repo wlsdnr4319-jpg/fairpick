@@ -43,7 +43,8 @@ export default function Sidebar({ onNavigate, account = false }) {
     <div className="flex h-full flex-col">
       {/* 높이·아래 선을 위쪽 바(h-16)와 맞춰 한 줄로 이어 보이게 */}
       <div className="mb-4 flex h-14 shrink-0 items-center border-b border-gray-200 px-3 md:h-16">
-        <Link to="/" translate="no" onClick={onNavigate} className="rounded-md px-2 text-xl font-bold text-indigo-600">
+        <Link to="/" translate="no" onClick={onNavigate} className="font-display inline-flex items-center gap-2 rounded-md px-2 text-2xl text-indigo-700">
+          <LogoMark />
           페어픽
         </Link>
       </div>
@@ -114,7 +115,7 @@ function Section({ title, links, active, onNavigate, compact = false }) {
                   onClick={onNavigate}
                   aria-current={current ? 'page' : undefined}
                   className={`inline-flex min-h-9 items-center rounded-full px-3 text-sm ${
-                    current ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700'
+                    current ? 'bg-amber-400 font-semibold text-indigo-900' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:ring-indigo-300'
                   }`}
                 >
                   {l.label}
@@ -129,7 +130,7 @@ function Section({ title, links, active, onNavigate, compact = false }) {
                 onClick={onNavigate}
                 aria-current={current ? 'page' : undefined}
                 className={`flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm ${
-                  current ? 'bg-indigo-50 font-semibold text-indigo-700' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  current ? 'bg-indigo-700 font-semibold text-white' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Icon name={l.icon} />
@@ -140,6 +141,16 @@ function Section({ title, links, active, onNavigate, compact = false }) {
         })}
       </ul>
     </section>
+  )
+}
+
+// 로고 표시: 노란 입장권 조각 (글자와 함께 쓰므로 스크린리더에는 숨긴다)
+export function LogoMark({ className = 'h-6 w-6' }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a3 3 0 0 0 0 6v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a3 3 0 0 0 0-6z" fill="#ffc61a" />
+      <path d="M9 4v16" stroke="#172242" strokeWidth="1.6" strokeDasharray="2 2" />
+    </svg>
   )
 }
 

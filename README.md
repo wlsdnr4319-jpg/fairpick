@@ -104,7 +104,7 @@ erDiagram
 | 층 | 도구 | 개수 |
 | --- | --- | --- |
 | 백엔드 | pytest, **MySQL 8.4** (SQLite 가 아님) | 246 |
-| 프론트 단위·컴포넌트 | Vitest + Testing Library + MSW | 199 |
+| 프론트 단위·컴포넌트 | Vitest + Testing Library + MSW | 201 |
 | E2E | Playwright: 실제 API·DB·빌드한 프론트, 데스크톱·모바일 화면 | 20 시나리오 × 2 + 휴대폰 전용 1 (가로 넘침 검사) |
 
 백엔드는 ENUM·CHECK·INSERT IGNORE·FULLTEXT 문법 차이로 테스트만 통과하는 일을 막으려고 실제와 같은 MySQL 에서 돌립니다.
