@@ -27,7 +27,7 @@ export default function FairDetail() {
 
   return (
     <article className="space-y-8 pb-20 md:pb-0">
-      <div className="relative h-44 overflow-hidden rounded-2xl bg-gray-100 sm:h-56">
+      <div className="relative h-44 overflow-hidden rounded-3xl bg-gray-100 sm:h-64">
         <FairCover fair={fair} size="hero" credit className={fair.progress === 'ended' ? 'grayscale' : ''} />
       </div>
       <header className="space-y-3">
@@ -37,7 +37,7 @@ export default function FairDetail() {
             {fair.category.name}
           </Link>
         </div>
-        <h1 className="text-2xl font-bold text-balance break-words">{fair.title}</h1>
+        <h1 className="text-3xl leading-tight text-balance break-words text-indigo-800 sm:text-4xl">{fair.title}</h1>
         <div className="flex flex-wrap gap-1.5">
           {fair.tags.map((t) => (
             <TagChip key={t.slug} tag={t} asLink />
@@ -45,7 +45,7 @@ export default function FairDetail() {
         </div>
       </header>
 
-      <section aria-label="핵심 정보" className="grid gap-3 rounded-xl border p-4 sm:grid-cols-2">
+      <section aria-label="핵심 정보" className="grid gap-x-6 gap-y-4 rounded-2xl border-2 border-indigo-700 p-5 sm:grid-cols-2">
         <Info label="기간" value={formatPeriod(fair.start_date, fair.end_date)} />
         <Info label="운영 시간" value={hours} note={fair.hours.note} />
         <Info
@@ -74,7 +74,7 @@ export default function FairDetail() {
             </div>
           )}
           {fair.visit_tip && (
-            <div className="rounded-xl bg-amber-50 p-4">
+            <div className="rounded-2xl bg-gray-50 p-4 sm:p-5">
               <h2 className="mb-1 font-semibold">관람 팁</h2>
               <p className="whitespace-pre-line text-gray-700">{fair.visit_tip}</p>
             </div>
@@ -125,7 +125,7 @@ function Info({ label, value, note }) {
   return (
     <div>
       <p className="text-xs text-gray-500">{label}</p>
-      <p className="font-medium">{value}</p>
+      <p className="font-semibold text-gray-900">{value}</p>
       {note && <p className="text-sm text-gray-600">{note}</p>}
     </div>
   )
@@ -135,10 +135,10 @@ function PreregBox({ prereg, price }) {
   if (!prereg.end_at && !prereg.url) return null
   const d = deadlineDDay(prereg.end_at)
   return (
-    <section aria-label="사전등록" className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+    <section aria-label="사전등록" className="rounded-2xl bg-amber-100 p-5 [--perf-hole:var(--color-white)]">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">사전등록</h2>
-        {d != null && <span className="text-sm font-bold text-red-600">마감 {d === 0 ? '오늘' : `D-${d}`}</span>}
+        <h2 className="font-display text-xl text-indigo-800">사전등록</h2>
+        {d != null && <span className="rounded-lg bg-white px-2.5 py-1 text-sm font-bold tabular-nums text-red-600">마감 {d === 0 ? '오늘' : `D-${d}`}</span>}
       </div>
       {prereg.end_at && (
         <p className="mt-1 text-sm text-gray-700">
@@ -152,7 +152,7 @@ function PreregBox({ prereg, price }) {
           href={prereg.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 text-white"
+          className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-indigo-700 px-4 font-semibold text-white hover:bg-indigo-800"
         >
           사전등록하러 가기
         </a>

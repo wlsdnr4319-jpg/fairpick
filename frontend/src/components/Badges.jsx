@@ -2,14 +2,15 @@ import { Link } from 'react-router-dom'
 import { statusLabel } from '../utils/format'
 
 const STATUS_STYLE = {
-  ongoing: 'bg-green-600 text-white',
+  // 진행 중은 출입증 노랑(지금 갈 수 있다), 예정은 남색, 종료는 회색
+  ongoing: 'bg-amber-400 text-indigo-900',
   upcoming: 'bg-indigo-600 text-white',
   ended: 'bg-gray-600 text-white',
 }
 
 export function StatusBadge({ progress, dDay }) {
   return (
-    <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[progress]}`}>
+    <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold tabular-nums ${STATUS_STYLE[progress]}`}>
       {statusLabel(progress, dDay)}
     </span>
   )
@@ -17,7 +18,7 @@ export function StatusBadge({ progress, dDay }) {
 
 export function TagChip({ tag, selected = false, onClick, asLink = false }) {
   const style = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs ${
-    selected ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-300 text-gray-600'
+    selected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-200 bg-gray-50 text-gray-700'
   }`
   if (asLink) {
     return (

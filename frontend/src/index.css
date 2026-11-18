@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+/* 페어픽 색: 전시장 안내판 같은 남색 잉크 + 출입증 목걸이 노랑.
+   화면 곳곳의 indigo-*·amber-* 클래스를 고치지 않고 팔레트 자체를 바꿔 한 번에 적용한다 */
+@theme {
+  --color-indigo-50: #eef1f7;
+  --color-indigo-100: #dfe4ef;
+  --color-indigo-200: #bfc8dc;
+  --color-indigo-300: #95a2c0;
+  --color-indigo-400: #6475a0;
+  --color-indigo-500: #3f5080;
+  --color-indigo-600: #223159;
+  --color-indigo-700: #172242;
+  --color-indigo-800: #111a33;
+  --color-indigo-900: #0c1226;
+  --color-indigo-950: #070b18;
+
+  --color-amber-50: #fff8e1;
+  --color-amber-100: #ffefb3;
+  --color-amber-200: #ffe27a;
+  --color-amber-300: #ffd447;
+  --color-amber-400: #ffc61a;
+  --color-amber-500: #f5b400;
+  --color-amber-600: #c98f00;
+  --color-amber-700: #9c6d00;
+  --color-amber-800: #6f4d00;
+  --color-amber-900: #4a3300;
+
+  --font-sans: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-display: "Black Han Sans", "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
 /* Tailwind v4 는 색을 안 적은 border 가 글자색(currentColor)이라 'border'·'divide-y' 만 쓴 곳이 검은 선으로 보였다.
    v3 처럼 연한 회색을 기본으로 한다 (Tailwind 공식 업그레이드 가이드의 호환 설정) */
 @layer base {
@@ -10,11 +40,19 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+
+  /* 페이지 제목은 안내판 글꼴. 굵기가 하나뿐이라 font-bold 가 붙어도 가짜 굵게(합성)를 하지 않는다 */
+  h1,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 0;
+  }
 }
 
 html {
-  font-family:
-    "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  font-family: var(--font-sans);
   color-scheme: light;
   /* 한글은 낱말(띄어쓰기) 단위로 줄을 바꾼다. 기본값은 글자마다 끊어 '갈까 / 요?' 처럼 낱말 중간이 갈라졌다.
      띄어쓰기 없는 긴 제목은 칸을 넘칠 때만 글자 단위로 끊는다(overflow-wrap) */
@@ -34,6 +72,70 @@ html {
 /* '오시는 길' 같은 페이지 안 이동이 고정 헤더 밑으로 숨지 않게 */
 [id] {
   scroll-margin-top: 7rem;
+}
+
+/* 입장권 절취선: 점선 + 양 끝 반원 홈. 카드(overflow-hidden) 안에 두면 반원이 잘려 홈처럼 보인다.
+   휴대폰 가로 카드는 세로 절취선, sm(40rem) 부터 위 표지 + 아래 글자라 가로 절취선 */
+.ticket-perf {
+  position: relative;
+  flex-shrink: 0;
+  border-left: 2px dashed var(--color-gray-200);
+}
+.ticket-perf::before,
+.ticket-perf::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--perf-hole, var(--color-white));
+  border: 1px solid var(--color-gray-200);
+}
+.ticket-perf::before {
+  top: -9px;
+}
+.ticket-perf::after {
+  bottom: -9px;
+}
+@media (width >= 40rem) {
+  .ticket-perf {
+    border-left: 0;
+    border-top: 2px dashed var(--color-gray-200);
+  }
+  .ticket-perf::before,
+  .ticket-perf::after {
+    top: -9px;
+    bottom: auto;
+  }
+  .ticket-perf::before {
+    left: -9px;
+  }
+  .ticket-perf::after {
+    left: auto;
+    right: -9px;
+  }
+}
+.ticket-perf-x {
+  position: relative;
+  border-top: 2px dashed var(--color-gray-200);
+}
+.ticket-perf-x::before,
+.ticket-perf-x::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--perf-hole, var(--color-white));
+  border: 1px solid var(--color-gray-200);
+}
+.ticket-perf-x::before {
+  left: -9px;
+}
+.ticket-perf-x::after {
+  right: -9px;
 }
 
 /* 휴대폰 메뉴 서랍 */

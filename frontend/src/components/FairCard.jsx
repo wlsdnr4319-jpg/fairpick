@@ -14,7 +14,7 @@ export default function FairCard({ fair }) {
     // 제목만 링크로 두고 ::after 로 카드 전체를 덮어 어디를 눌러도 이동하게 한다 (북마크는 그 위 z-10).
     <article
       data-ended={ended || undefined}
-      className={`group relative flex overflow-hidden rounded-xl border bg-white transition-shadow hover:shadow-md focus-within:shadow-md sm:flex-col ${
+      className={`group relative flex overflow-hidden rounded-2xl border bg-white transition-[border-color,box-shadow] hover:border-indigo-300 hover:shadow-[0_6px_0_-2px_var(--color-indigo-100)] focus-within:border-indigo-300 sm:flex-col ${
         ended ? 'border-gray-100 bg-gray-50' : 'border-gray-200'
       }`}
     >
@@ -30,19 +30,21 @@ export default function FairCard({ fair }) {
           <StatusBadge progress={fair.progress} dDay={fair.d_day} />
         </div>
       </div>
+      {/* 표지와 글자 사이 입장권 절취선 (index.css .ticket-perf) */}
+      <div className="ticket-perf" aria-hidden="true" />
       <BookmarkButton fairId={fair.id} bookmarked={fair.is_bookmarked} className="absolute top-2 right-2 z-10" />
       <div className="min-w-0 flex-1 space-y-1 p-3 pr-12 sm:space-y-1.5 sm:p-4 sm:pr-4">
         <p className="text-xs text-gray-500 sm:hidden">{fair.category.name}</p>
-        <h3 className="line-clamp-2 break-words font-semibold group-hover:text-indigo-700">
+        <h3 className="line-clamp-2 break-words font-bold leading-snug group-hover:underline group-hover:decoration-amber-400 group-hover:decoration-2 group-hover:underline-offset-4">
           <Link to={`/fairs/${fair.id}`} className="after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-indigo-600">
             {fair.title}
           </Link>
         </h3>
-        <p className="text-sm text-gray-600">{formatPeriod(fair.start_date, fair.end_date)}</p>
+        <p className="text-sm font-semibold tabular-nums text-indigo-700">{formatPeriod(fair.start_date, fair.end_date)}</p>
         <p className="truncate text-sm text-gray-600">
           {fair.venue.name}
           {fair.venue.hall ? ` ${fair.venue.hall}` : ''}
-          {fair.distance_km != null && <span className="text-indigo-700"> · {formatDistance(fair.distance_km)}</span>}
+          {fair.distance_km != null && <span className="font-medium text-indigo-700"> · {formatDistance(fair.distance_km)}</span>}
         </p>
         {fair.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">

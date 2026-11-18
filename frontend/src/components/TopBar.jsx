@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useFairs } from '../hooks/useFairs'
 import { useAuth } from '../store/AuthContext'
+import { LogoMark } from './Sidebar'
 
 // 위쪽 바 (모든 화면). 휴대폰: ☰ · 로고 · 검색 · 계정 / 넓은 화면: 검색창 · 이번 주말 바로가기 · 계정.
 // 로그인·회원가입과 계정 메뉴는 오른쪽 위에 둔다 (사이드바 아래에 있던 것을 옮김).
@@ -22,7 +23,8 @@ export default function TopBar({ menuButtonRef, menuOpen, onOpenMenu }) {
           <path d="M4 7h16M4 12h16M4 17h16" />
         </svg>
       </button>
-      <Link to="/" translate="no" className="mr-auto rounded-md px-1 text-lg font-bold text-indigo-600 md:hidden">
+      <Link to="/" translate="no" className="font-display mr-auto inline-flex items-center gap-1.5 rounded-md px-1 text-xl text-indigo-700 md:hidden">
+        <LogoMark className="h-5 w-5" />
         페어픽
       </Link>
 
@@ -44,7 +46,7 @@ export default function TopBar({ menuButtonRef, menuOpen, onOpenMenu }) {
           </Link>
           <Link
             to="/signup"
-            className="inline-flex min-h-10 items-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white hover:bg-indigo-700 md:px-4"
+            className="inline-flex min-h-10 items-center rounded-lg bg-indigo-700 px-3 text-sm font-semibold text-white hover:bg-indigo-800 md:px-4"
           >
             회원가입
           </Link>
@@ -86,7 +88,7 @@ function SearchBox() {
         onChange={(e) => setQ(e.target.value)}
         placeholder="박람회 검색 (커피, 캠핑, 웨딩…)"
         aria-label="박람회 이름·키워드"
-        className="h-10 w-full rounded-full border border-gray-200 bg-gray-50 pr-4 pl-9 text-sm focus:border-indigo-300 focus:bg-white"
+        className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pr-4 pl-9 text-sm focus:border-indigo-400 focus:bg-white"
       />
     </form>
   )
@@ -100,9 +102,9 @@ function WeekendLink() {
     <span className="hidden flex-1 lg:block">
       <Link
         to="/fairs?period=this_weekend"
-        className="inline-flex min-h-10 items-center gap-2 rounded-full bg-amber-50 px-3 text-sm text-amber-900 hover:bg-amber-100"
+        className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-amber-100 px-3 text-sm text-indigo-900 hover:bg-amber-200"
       >
-        <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+        <span className="h-2 w-2 rounded-full bg-indigo-700" aria-hidden="true" />
         이번 주말 박람회 <strong className="font-semibold">{data.total}개</strong>
       </Link>
     </span>
